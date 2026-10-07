@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.smartproperty.mapper.BuildingMapper">
+
+    <sql id="selectBody">
+        SELECT b.id, b.building_no, b.name, b.unit_count, b.floor_count,
+               b.remark, b.create_time,
+               (SELECT COUNT(*) FROM t_room r WHERE r.building_id = b.id) AS roomCount
+        FROM t_building b
+    </sql>
+
+    <select id="findPage" resultType="Building">
+        <include refid="selectBody"/>
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (b.building_no LIKE CONCAT('%', #{keyword}, '%')
+                     OR b.name LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+        </where>
+        ORDER BY b.building_no ASC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <select id="countByCondition" resultType="long">
+        SELECT COUNT(*) FROM t_building b
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (b.building_no LIKE CONCAT('%', #{keyword}, '%')
+                     OR b.name LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+        </where>
+    </select>
+
+    <select id="findAll" resultType="Building">
+        <include refid="selectBody"/>
+        ORDER BY b.building_no ASC
+    </select>
+
+    <select id="findById" resultType="Building">
+        <include refid="selectBody"/>
+        WHERE b.id = #{id}
+    </select>
+
+    <select id="countByBuildingNo" resultType="int">
+        SELECT COUNT(*) FROM t_building
+        WHERE building_no = #{buildingNo}
+        <if test="excludeId != null">
+            AND id != #{excludeId}
+        </if>
+    </select>
+
+    <select id="countRooms" resultType="int">
+        SELECT COUNT(*) FROM t_room WHERE building_id = #{buildingId}
+    </select>
+
+    <select id="countAll" resultType="long">
+        SELECT COUNT(*) FROM t_building
+    </select>
+
+    <insert id="insert" parameterType="Building" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_building (building_no, name, unit_count, floor_count, remark, create_time)
+        VALUES (#{buildingNo}, #{name}, #{unitCount}, #{floorCount}, #{remark}, NOW())
+    </insert>
+
+    <update id="update" parameterType="Building">
+        UPDATE t_building
+        SET building_no = #{buildingNo},
+            name        = #{name},
+            unit_count  = #{unitCount},
+            floor_count = #{floorCount},
+            remark      = #{remark}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM t_building WHERE id = #{id}
+    </delete>
+</mapper>

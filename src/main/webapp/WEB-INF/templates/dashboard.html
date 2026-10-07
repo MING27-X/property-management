@@ -1,0 +1,422 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{common/layout :: head('首页概览')}"></head>
+<body>
+<header th:replace="~{common/layout :: topnav('dashboard')}"></header>
+<div class="layout">
+    <aside th:replace="~{common/layout :: sidebar('dashboard')}"></aside>
+    <main class="main">
+        <header th:replace="~{common/layout :: topbar('首页概览', '欢迎使用智慧物业社区管理系统')}"></header>
+
+        <div class="content">
+
+            <!-- ==================== 物业端 / 管理员端 ==================== -->
+            <th:block th:if="${loginUser.role != 'OWNER'}">
+                <div class="stat-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon">🧑‍🤝‍🧑</div>
+                        <div>
+                            <div class="stat-value" th:text="${ownerCount}">0</div>
+                            <div class="stat-label">居民总数</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon green">🏢</div>
+                        <div>
+                            <div class="stat-value" th:text="${buildingCount}">0</div>
+                            <div class="stat-label">楼栋数量</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon teal">🚪</div>
+                        <div>
+                            <div class="stat-value" th:text="${roomCount}">0</div>
+                            <div class="stat-label">
+                                房屋总数（入住 <span th:text="${occupiedCount}">0</span>）
+                            </div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon orange">🛠️</div>
+                        <div>
+                            <div class="stat-value" th:text="${repairPending}">0</div>
+                            <div class="stat-label">待处理报修</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon red">💰</div>
+                        <div>
+                            <div class="stat-value" th:text="${feeUnpaidCount}">0</div>
+                            <div class="stat-label">待缴费账单</div>
+                        </div>
+                    </div>
+                    <div class="stat-card">
+                        <div class="stat-icon purple">🚶</div>
+                        <div>
+                            <div class="stat-value" th:text="${visitorToday}">0</div>
+                            <div class="stat-label">今日访客</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 统计图表 -->
+                <div class="grid-2">
+                    <div class="card">
+                        <div class="card-head">
+                            <div><h3>报修状态统计</h3>
+                                <div class="sub">共 <span th:text="${repairTotal}">0</span> 条报修工单</div>
+                            </div>
+                            <a class="btn btn-sm" th:href="@{/repair/list}">查看</a>
+                        </div>
+                        <div class="donut-wrap">
+                            <div class="donut" th:style="|background: ${repairDoughnut.gradient};|">
+                                <div class="donut-total">
+                                    <b th:text="${repairTotal}">0</b><span>工单总数</span>
+                                </div>
+                            </div>
+                            <ul class="legend">
+                                <li th:each="it : ${repairDoughnut.items}">
+                                    <span class="dot" th:style="|background: ${it.cssClass};|"></span>
+                                    <span class="name" th:text="${it.label}">待处理</span>
+                                    <b th:text="${it.value}">0</b>
+                                    <em th:text="${#numbers.formatDecimal(it.percent, 1, 1)} + '%'">0%</em>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-head">
+                            <div><h3>缴费状态统计</h3>
+                                <div class="sub">
+                                    已缴 <span th:text="${feePaidCount}">0</span> 笔 ／
+                                    未缴 <span th:text="${feeUnpaidCount}">0</span> 笔
+                                </div>
+                            </div>
+                            <a class="btn btn-sm" th:href="@{/fee/list}">查看</a>
+                        </div>
+                        <div class="donut-wrap">
+                            <div class="donut" th:style="|background: ${feeDoughnut.gradient};|">
+                                <div class="donut-total">
+                                    <b th:text="${feeDoughnut.total}">0</b><span>账单总数</span>
+                                </div>
+                            </div>
+                            <ul class="legend">
+                                <li th:each="it : ${feeDoughnut.items}">
+                                    <span class="dot" th:style="|background: ${it.cssClass};|"></span>
+                                    <span class="name" th:text="${it.label}">已缴费</span>
+                                    <b th:text="${it.value}">0</b>
+                                    <em th:text="${#numbers.formatDecimal(it.percent, 1, 1)} + '%'">0%</em>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-head">
+                            <div><h3>车位使用情况</h3>
+                                <div class="sub">车位总数 <span th:text="${parkingTotal}">0</span> 个，
+                                    月租金收入 <span th:text="${parkingIncome}">0</span> 元</div>
+                            </div>
+                            <a class="btn btn-sm" th:href="@{/parking/list}">查看</a>
+                        </div>
+                        <div class="bars">
+                            <div class="bar-item" th:each="c : ${parkingBars}">
+                                <div class="bar-value" th:text="${c.value}">0</div>
+                                <div class="bar-wrap">
+                                    <div class="bar" th:classappend="${c.cssClass}"
+                                         th:style="|height: ${c.percent}%;|"></div>
+                                </div>
+                                <div class="bar-label" th:text="${c.label}">空闲</div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-head">
+                            <div><h3>用户角色分布</h3>
+                                <div class="sub">系统账号共
+                                    <span th:text="${adminCount + staffCount + userOwnerCount}">0</span> 个</div>
+                            </div>
+                            <a class="btn btn-sm" th:if="${loginUser.role == 'ADMIN'}"
+                               th:href="@{/user/list}">查看</a>
+                        </div>
+                        <div class="donut-wrap">
+                            <div class="donut" th:style="|background: ${roleDoughnut.gradient};|">
+                                <div class="donut-total">
+                                    <b th:text="${roleDoughnut.total}">0</b><span>账号总数</span>
+                                </div>
+                            </div>
+                            <ul class="legend">
+                                <li th:each="it : ${roleDoughnut.items}">
+                                    <span class="dot" th:style="|background: ${it.cssClass};|"></span>
+                                    <span class="name" th:text="${it.label}">业主</span>
+                                    <b th:text="${it.value}">0</b>
+                                    <em th:text="${#numbers.formatDecimal(it.percent, 1, 1)} + '%'">0%</em>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 收费趋势 -->
+                <div class="card">
+                    <div class="card-head">
+                        <div><h3>近 6 个月收费情况</h3>
+                            <div class="sub">
+                                <span th:text="${currentPeriod}">2026-03</span> 月应收
+                                <span th:text="${monthReceivable}">0</span> 元，
+                                实收 <span th:text="${monthReceived}">0</span> 元，
+                                累计欠费 <span th:text="${unpaidTotal}">0</span> 元
+                            </div>
+                        </div>
+                    </div>
+                    <div class="bars" th:if="${monthBars != null and !monthBars.isEmpty()}">
+                        <div class="bar-item" th:each="c : ${monthBars}">
+                            <div class="bar-value" th:text="${c.value}">0</div>
+                            <div class="bar-wrap">
+                                <div class="bar" th:style="|height: ${c.percent}%;|"></div>
+                            </div>
+                            <div class="bar-label" th:text="${c.label}">2026-03</div>
+                        </div>
+                    </div>
+                    <p class="muted" th:if="${monthBars == null or monthBars.isEmpty()}">暂无收费数据</p>
+                </div>
+
+                <!-- 最新动态 -->
+                <div class="grid-2">
+                    <div class="card">
+                        <div class="card-head">
+                            <div><h3>最新报修工单</h3>
+                                <div class="sub">按报修时间倒序展示</div>
+                            </div>
+                            <a class="btn btn-sm" th:href="@{/repair/list}">全部工单</a>
+                        </div>
+                        <ul class="info-list">
+                            <li th:each="rp : ${latestRepairs}">
+                                <div class="li-main">
+                                    <div class="li-title">
+                                        <a th:href="@{/repair/detail(id=${rp.id})}" th:text="${rp.title}">标题</a>
+                                        <span class="badge badge-gray" th:text="${rp.category}">类别</span>
+                                    </div>
+                                    <div class="li-meta">
+                                        <span th:text="${(rp.buildingName != null ? rp.buildingName : '') + ' ' + (rp.roomNo != null ? rp.roomNo : '')}">房屋</span>
+                                        · <span th:text="${rp.ownerName}">业主</span>
+                                        · <span th:text="${#dates.format(rp.createTime,'yyyy-MM-dd HH:mm')}">时间</span>
+                                    </div>
+                                </div>
+                                <div class="li-side">
+                                    <span class="badge"
+                                          th:classappend="${rp.status == '待处理'} ? 'badge-orange' : (${rp.status == '处理中'} ? 'badge-blue' : 'badge-green')"
+                                          th:text="${rp.status}">待处理</span>
+                                </div>
+                            </li>
+                            <li th:if="${latestRepairs == null or latestRepairs.isEmpty()}">
+                                <div class="li-main"><div class="li-title">暂无报修工单</div></div>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-head">
+                            <div><h3>最新公告通知</h3>
+                                <div class="sub">共 <span th:text="${noticeCount}">0</span> 条公告，
+                                    待处理投诉 <span th:text="${complaintPending}">0</span> 条</div>
+                            </div>
+                            <a class="btn btn-sm" th:href="@{/notice/list}">公告管理</a>
+                        </div>
+                        <ul class="info-list">
+                            <li th:each="n : ${latestNotices}">
+                                <div class="li-main">
+                                    <div class="li-title">
+                                        <a th:href="@{/notice/detail(id=${n.id})}" th:text="${n.title}">标题</a>
+                                    </div>
+                                    <div class="li-meta">
+                                        <span th:text="${n.publisherName}">发布人</span>
+                                        · 浏览 <span th:text="${n.viewCount}">0</span>
+                                    </div>
+                                </div>
+                                <div class="li-side">
+                                    <span class="badge"
+                                          th:classappend="${n.type == '紧急'} ? 'badge-red' : (${n.type == '公告'} ? 'badge-blue' : 'badge-gray')"
+                                          th:text="${n.type}">公告</span>
+                                    <div class="li-date" th:text="${#dates.format(n.publishTime,'yyyy-MM-dd')}">日期</div>
+                                </div>
+                            </li>
+                            <li th:if="${latestNotices == null or latestNotices.isEmpty()}">
+                                <div class="li-main"><div class="li-title">暂无公告</div></div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </th:block>
+
+            <!-- ==================== 业主端 ==================== -->
+            <th:block th:if="${loginUser.role == 'OWNER'}">
+
+                <!-- 顶部 Banner -->
+                <div class="hero">
+                    <svg class="hero-art" viewBox="0 0 1200 200" preserveAspectRatio="none" aria-hidden="true">
+                        <g fill="#ffffff" opacity="0.10">
+                            <rect x="70" y="70" width="76" height="130"/>
+                            <rect x="160" y="40" width="58" height="160"/>
+                            <rect x="232" y="96" width="70" height="104"/>
+                            <rect x="316" y="58" width="54" height="142"/>
+                            <rect x="384" y="110" width="86" height="90"/>
+                            <rect x="900" y="76" width="64" height="124"/>
+                            <rect x="978" y="46" width="52" height="154"/>
+                            <rect x="1044" y="100" width="78" height="100"/>
+                        </g>
+                        <g fill="#ffffff" opacity="0.06">
+                            <rect x="486" y="92" width="66" height="108"/>
+                            <rect x="566" y="66" width="48" height="134"/>
+                            <rect x="628" y="120" width="72" height="80"/>
+                            <rect x="714" y="84" width="56" height="116"/>
+                            <rect x="784" y="112" width="96" height="88"/>
+                        </g>
+                    </svg>
+                    <div class="hero-text">
+                        <h2 th:text="'你好，' + ${loginUser.realName} + '，欢迎回家'">你好，欢迎回家</h2>
+                        <p th:if="${owner != null}">
+                            <span th:text="${(owner.buildingName != null ? owner.buildingName : '') + ' ' + (owner.roomNo != null ? owner.roomNo : '')}">房屋</span>
+                            ｜ 联系电话 <span th:text="${owner.phone}">电话</span>
+                            ｜ 未缴账单 <span th:text="${unpaidCount}">0</span> 笔
+                        </p>
+                        <p th:if="${owner == null}">当前账号尚未关联业主档案，请联系物业服务中心办理。</p>
+                    </div>
+                </div>
+
+                <!-- 快捷入口 -->
+                <div class="shortcut-grid">
+                    <a class="shortcut-item" th:href="@{/repair/list}">
+                        <div class="shortcut-icon">🛠️</div><span>报修服务</span>
+                    </a>
+                    <a class="shortcut-item" th:href="@{/fee/list}">
+                        <div class="shortcut-icon green">💰</div><span>缴费中心</span>
+                    </a>
+                    <a class="shortcut-item" th:href="@{/notice/list}">
+                        <div class="shortcut-icon orange">📢</div><span>公告通知</span>
+                    </a>
+                    <a class="shortcut-item" th:href="@{/complaint/list}">
+                        <div class="shortcut-icon red">💬</div><span>投诉建议</span>
+                    </a>
+                    <a class="shortcut-item" th:href="@{/owner/my}">
+                        <div class="shortcut-icon purple">🔑</div><span>我的房屋</span>
+                    </a>
+                    <a class="shortcut-item" th:href="@{/profile}">
+                        <div class="shortcut-icon teal">👤</div><span>个人中心</span>
+                    </a>
+                </div>
+
+                <div class="grid-2">
+                    <div class="card">
+                        <div class="card-head">
+                            <div><h3>最新公告</h3>
+                                <div class="sub">物业发布的通知与公告</div>
+                            </div>
+                            <a class="btn btn-sm" th:href="@{/notice/list}">更多 &gt;</a>
+                        </div>
+                        <ul class="info-list">
+                            <li th:each="n : ${latestNotices}">
+                                <div class="li-main">
+                                    <div class="li-title">
+                                        <span class="badge"
+                                              th:classappend="${n.type == '紧急'} ? 'badge-red' : (${n.type == '公告'} ? 'badge-blue' : 'badge-orange')"
+                                              th:text="${n.type}">公告</span>
+                                        <a th:href="@{/notice/detail(id=${n.id})}" th:text="${n.title}">标题</a>
+                                    </div>
+                                </div>
+                                <div class="li-side li-date"
+                                     th:text="${#dates.format(n.publishTime,'yyyy-MM-dd')}">日期</div>
+                            </li>
+                            <li th:if="${latestNotices == null or latestNotices.isEmpty()}">
+                                <div class="li-main"><div class="li-title">暂无公告</div></div>
+                            </li>
+                        </ul>
+                    </div>
+
+                    <div class="card">
+                        <div class="card-head">
+                            <div><h3>我的报修</h3>
+                                <div class="sub">共 <span th:text="${myRepairCount}">0</span> 条报修记录</div>
+                            </div>
+                            <a class="btn btn-sm btn-primary" th:href="@{/repair/list}">新增报修</a>
+                        </div>
+                        <ul class="info-list">
+                            <li th:each="rp : ${myRepairs}">
+                                <div class="li-main">
+                                    <div class="li-title">
+                                        <a th:href="@{/repair/detail(id=${rp.id})}" th:text="${rp.title}">标题</a>
+                                        <span class="badge badge-gray" th:text="${rp.category}">类别</span>
+                                    </div>
+                                    <div class="li-meta">
+                                        <span th:text="${#dates.format(rp.createTime,'yyyy-MM-dd HH:mm')}">时间</span>
+                                        <span th:if="${rp.handlerName != null}"
+                                              th:text="'　处理人：' + ${rp.handlerName}">处理人</span>
+                                    </div>
+                                </div>
+                                <div class="li-side">
+                                    <span class="badge"
+                                          th:classappend="${rp.status == '待处理'} ? 'badge-orange' : (${rp.status == '处理中'} ? 'badge-blue' : 'badge-green')"
+                                          th:text="${rp.status}">待处理</span>
+                                </div>
+                            </li>
+                            <li th:if="${myRepairs == null or myRepairs.isEmpty()}">
+                                <div class="li-main"><div class="li-title">暂无报修记录</div></div>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-head">
+                        <div><h3>我的缴费</h3>
+                            <div class="sub">
+                                待缴 <span th:text="${unpaidCount}">0</span> 笔，共
+                                <span th:text="${unpaidAmount}">0</span> 元；累计已缴
+                                <span th:text="${paidAmount}">0</span> 元
+                            </div>
+                        </div>
+                        <a class="btn btn-sm btn-primary" th:href="@{/fee/list}">立即缴费</a>
+                    </div>
+                    <div class="table-wrap">
+                        <table class="data-table">
+                            <thead>
+                            <tr>
+                                <th>费用项目</th>
+                                <th>费用类型</th>
+                                <th>缴费周期</th>
+                                <th>金额</th>
+                                <th>状态</th>
+                                <th>截止日期</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:if="${myBills == null or myBills.isEmpty()}">
+                                <td colspan="6" class="empty-row">暂无账单</td>
+                            </tr>
+                            <tr th:each="f : ${myBills}">
+                                <td th:text="${(f.buildingName != null ? f.buildingName : '') + ' ' + (f.roomNo != null ? f.roomNo : '')}">房屋</td>
+                                <td th:text="${f.feeType}">物业费</td>
+                                <td th:text="${f.period}">2026-03</td>
+                                <td><b th:text="'￥' + ${f.amount}">￥0</b></td>
+                                <td>
+                                    <span class="badge"
+                                          th:classappend="${f.status == '已缴'} ? 'badge-green' : 'badge-orange'"
+                                          th:text="${f.status == '已缴' ? '已缴费' : '待缴费'}">待缴费</span>
+                                </td>
+                                <td th:text="${f.dueDate != null ? #dates.format(f.dueDate,'yyyy-MM-dd') : '—'}">—</td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </th:block>
+        </div>
+
+        <footer th:replace="~{common/layout :: footer}"></footer>
+    </main>
+</div>
+<script th:src="@{/static/js/app.js}"></script>
+</body>
+</html>

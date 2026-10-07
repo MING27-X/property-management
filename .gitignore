@@ -1,0 +1,13 @@
+target/
+.idea/
+*.iml
+.settings/
+.classpath
+.project
+*.log
+*.war
+logs/
+.DS_Store
+.temp/
+.vscode/
+基于Java技术的智慧物业社区管理系统的设计与实现-/

@@ -1,0 +1,107 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.smartproperty.mapper.SysUserMapper">
+
+    <sql id="baseColumns">
+        id, username, password, real_name, phone, role, status, create_time
+    </sql>
+
+    <select id="findByUsername" resultType="SysUser">
+        SELECT <include refid="baseColumns"/>
+        FROM t_user
+        WHERE username = #{username}
+        LIMIT 1
+    </select>
+
+    <select id="findById" resultType="SysUser">
+        SELECT <include refid="baseColumns"/>
+        FROM t_user
+        WHERE id = #{id}
+    </select>
+
+    <select id="findPage" resultType="SysUser">
+        SELECT <include refid="baseColumns"/>
+        FROM t_user
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (username LIKE CONCAT('%', #{keyword}, '%')
+                     OR real_name LIKE CONCAT('%', #{keyword}, '%')
+                     OR phone LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="role != null and role != ''">
+                AND role = #{role}
+            </if>
+        </where>
+        ORDER BY id ASC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <select id="countByCondition" resultType="long">
+        SELECT COUNT(*) FROM t_user
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (username LIKE CONCAT('%', #{keyword}, '%')
+                     OR real_name LIKE CONCAT('%', #{keyword}, '%')
+                     OR phone LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="role != null and role != ''">
+                AND role = #{role}
+            </if>
+        </where>
+    </select>
+
+    <select id="countByRole" resultType="map">
+        SELECT role AS role, COUNT(*) AS num FROM t_user GROUP BY role
+    </select>
+
+    <select id="findOwners" resultType="SysUser">
+        SELECT id, username, real_name, phone, role
+        FROM t_user
+        WHERE role = 'OWNER'
+        ORDER BY id ASC
+    </select>
+
+    <select id="findStaff" resultType="SysUser">
+        SELECT id, username, real_name, phone, role
+        FROM t_user
+        WHERE role IN ('STAFF', 'ADMIN') AND status = 1
+        ORDER BY role DESC, id ASC
+    </select>
+
+    <insert id="insert" parameterType="SysUser" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_user (username, password, real_name, phone, role, status, create_time)
+        VALUES (#{username}, #{password}, #{realName}, #{phone}, #{role},
+                #{status}, NOW())
+    </insert>
+
+    <update id="update" parameterType="SysUser">
+        UPDATE t_user
+        SET real_name = #{realName},
+            phone     = #{phone},
+            role      = #{role},
+            status    = #{status}
+        WHERE id = #{id}
+    </update>
+
+    <update id="updatePassword">
+        UPDATE t_user SET password = #{password} WHERE id = #{id}
+    </update>
+
+    <!-- 按主键同步账号姓名（业主档案姓名变更时调用） -->
+    <update id="updateRealName">
+        UPDATE t_user SET real_name = #{realName} WHERE id = #{id}
+    </update>
+
+    <update id="updateStatus">
+        UPDATE t_user SET status = #{status} WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM t_user WHERE id = #{id}
+    </delete>
+
+    <select id="countByUsername" resultType="int">
+        SELECT COUNT(*) FROM t_user WHERE username = #{username}
+    </select>
+</mapper>

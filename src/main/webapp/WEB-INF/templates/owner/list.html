@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{common/layout :: head('业主管理')}"></head>
+<body>
+<div class="layout">
+    <aside th:replace="~{common/layout :: sidebar('owner')}"></aside>
+    <main class="main">
+        <header th:replace="~{common/layout :: topbar('业主管理', '业主档案登记、房屋绑定与账号关联')}"></header>
+
+        <div class="content">
+            <div class="alert alert-success alert-auto" th:if="${msg != null}" th:text="${msg}"></div>
+            <div class="alert alert-error alert-auto" th:if="${error != null}" th:text="${error}"></div>
+
+            <div class="card">
+                <div class="toolbar">
+                    <form th:action="@{/owner/list}" method="get">
+                        <input type="text" name="keyword" th:value="${keyword}" placeholder="姓名 / 电话 / 身份证 / 房号">
+                        <select name="buildingId">
+                            <option value="">全部楼栋</option>
+                            <option th:each="b : ${buildings}" th:value="${b.id}" th:text="${b.name}"
+                                    th:selected="${buildingId != null and buildingId == b.id}"></option>
+                        </select>
+                        <button type="submit" class="btn btn-primary btn-sm">查询</button>
+                        <a class="btn btn-sm" th:href="@{/owner/list}">重置</a>
+                    </form>
+                    <button type="button" class="btn btn-primary"
+                            onclick="openCreate('dataForm', 'editPanel', '新增业主档案')">+ 新增业主</button>
+                </div>
+
+                <div class="table-wrap">
+                    <table class="data-table">
+                        <thead>
+                        <tr>
+                            <th>业主姓名</th>
+                            <th>性别</th>
+                            <th>联系电话</th>
+                            <th>所在房屋</th>
+                            <th>家庭人数</th>
+                            <th>入住日期</th>
+                            <th>登录账号</th>
+                            <th>备注</th>
+                            <th>操作</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:if="${page.list.isEmpty()}">
+                            <td colspan="9" class="empty-row">暂无业主数据</td>
+                        </tr>
+                        <tr th:each="o : ${page.list}">
+                            <td><strong th:text="${o.name}">张三</strong></td>
+                            <td th:text="${o.gender}">男</td>
+                            <td th:text="${o.phone}">13900000001</td>
+                            <td th:text="${(o.buildingName != null ? o.buildingName : '') + ' ' + (o.roomNo != null ? o.roomNo : '未绑定')}">1号楼 1-101</td>
+                            <td th:text="${o.familyCount}">3</td>
+                            <td th:text="${o.moveInDate != null ? #dates.format(o.moveInDate, 'yyyy-MM-dd') : '—'}">2026-01-10</td>
+                            <td th:text="${o.username != null ? o.username : '未关联'}">zhangsan</td>
+                            <td class="wrap" th:text="${o.remark}">备注</td>
+                            <td>
+                                <div class="btn-row">
+                                    <button type="button" class="btn btn-sm"
+                                            th:attr="data-id=${o.id},data-name=${o.name},data-gender=${o.gender},data-phone=${o.phone},data-idcard=${o.idCard},data-roomid=${o.roomId},data-familycount=${o.familyCount},data-moveindate=${o.moveInDate != null ? #dates.format(o.moveInDate,'yyyy-MM-dd') : ''},data-userid=${o.userId},data-remark=${o.remark}"
+                                            onclick="openEdit(this, 'dataForm', 'editPanel', '编辑业主档案')">编辑</button>
+                                    <form th:if="${loginUser.role == 'ADMIN'}" th:action="@{/owner/delete}" method="post"
+                                          onsubmit="return confirmSubmit('确定删除该业主档案吗？删除后房屋将恢复为空置状态。');">
+                                        <input type="hidden" name="id" th:value="${o.id}">
+                                        <button type="submit" class="btn btn-sm btn-danger">删除</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="pager" th:if="${page.total > 0}">
+                    <span class="pager-info">
+                        共 <b th:text="${page.total}">0</b> 条记录，第 <b th:text="${page.pageNum}">1</b>/<b th:text="${page.pages}">1</b> 页
+                    </span>
+                    <div class="pager-btns">
+                        <a class="pg" th:if="${page.hasPrev}"
+                           th:href="@{/owner/list(pageNum=${page.pageNum - 1}, keyword=${keyword}, buildingId=${buildingId})}">上一页</a>
+                        <a class="pg" th:each="n : ${page.pageNumbers}" th:text="${n}"
+                           th:classappend="${n == page.pageNum} ? 'active'"
+                           th:href="@{/owner/list(pageNum=${n}, keyword=${keyword}, buildingId=${buildingId})}">1</a>
+                        <a class="pg" th:if="${page.hasNext}"
+                           th:href="@{/owner/list(pageNum=${page.pageNum + 1}, keyword=${keyword}, buildingId=${buildingId})}">下一页</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card form-panel" id="editPanel">
+                <div class="card-head">
+                    <div>
+                        <h3 class="panel-title">新增业主档案</h3>
+                        <div class="sub">一个房屋只能登记一位业主；房屋名称后显示的括号为当前已登记业主</div>
+                    </div>
+                </div>
+                <form id="dataForm" th:action="@{/owner/save}" method="post">
+                    <input type="hidden" name="id">
+                    <div class="form-grid">
+                        <div class="form-row">
+                            <label class="required" for="name">业主姓名</label>
+                            <input type="text" id="name" name="name" required>
+                        </div>
+                        <div class="form-row">
+                            <label for="gender">性别</label>
+                            <select id="gender" name="gender">
+                                <option value="男">男</option>
+                                <option value="女">女</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label class="required" for="phone">联系电话</label>
+                            <input type="tel" id="phone" name="phone" required pattern="1[0-9]{10}"
+                                   placeholder="11 位手机号">
+                        </div>
+                        <div class="form-row">
+                            <label for="idCard">身份证号</label>
+                            <input type="text" id="idCard" name="idCard" placeholder="选填">
+                        </div>
+                        <div class="form-row">
+                            <label class="required" for="roomId">绑定房屋</label>
+                            <select id="roomId" name="roomId" required>
+                                <option value="">请选择房屋</option>
+                                <option th:each="r : ${rooms}" th:value="${r.id}" th:text="${r.label}"></option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label for="familyCount">家庭人数</label>
+                            <input type="number" id="familyCount" name="familyCount" min="1" value="1">
+                        </div>
+                        <div class="form-row">
+                            <label for="moveInDate">入住日期</label>
+                            <input type="date" id="moveInDate" name="moveInDate">
+                        </div>
+                        <div class="form-row">
+                            <label for="userId">关联登录账号</label>
+                            <select id="userId" name="userId">
+                                <option value="">不关联</option>
+                                <option th:each="u : ${ownerUsers}" th:value="${u.id}"
+                                        th:text="${u.username + '（' + u.realName + '）'}"></option>
+                            </select>
+                            <div class="form-tip">关联后业主可使用该账号登录业主自助端</div>
+                        </div>
+                        <div class="form-row">
+                            <label for="remark">备注</label>
+                            <input type="text" id="remark" name="remark" placeholder="选填">
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">保存</button>
+                        <button type="button" class="btn" onclick="closePanel('editPanel')">取消</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <footer th:replace="~{common/layout :: footer}"></footer>
+    </main>
+</div>
+<script th:src="@{/static/js/app.js}"></script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>系统异常 - 智慧物业社区管理系统</title>
+    <link rel="stylesheet" th:href="@{/static/css/style.css}">
+</head>
+<body class="login-page">
+<div class="error-box">
+    <div class="error-code">500</div>
+    <h2>系统出现异常</h2>
+    <p>请稍后重试，若问题持续存在请联系系统管理员。</p>
+    <p class="muted" th:if="${message != null}" th:text="'错误信息：' + ${message}">错误信息</p>
+    <a class="btn btn-primary" th:href="@{/dashboard}">返回首页</a>
+</div>
+</body>
+</html>

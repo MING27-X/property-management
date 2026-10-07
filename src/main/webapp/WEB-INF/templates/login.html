@@ -1,0 +1,49 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>用户登录 - 智慧物业社区管理系统</title>
+    <link rel="stylesheet" th:href="@{/static/css/style.css}">
+</head>
+<body class="login-page">
+
+<div class="login-wrap">
+    <!-- 左侧介绍 -->
+    <div class="login-intro">
+        <h1>智慧物业社区<br>管理系统</h1>
+        <p class="sub">Smart Property Community Management System</p>
+        <ul class="feature-list">
+            <li>楼栋 · 房屋 · 业主 一体化档案管理</li>
+            <li>物业费 / 水电费 账单在线核销</li>
+            <li>报修工单派单、跟踪与回访</li>
+            <li>投诉建议、公告通知、访客与停车位管理</li>
+        </ul>
+    </div>
+
+    <!-- 右侧登录表单 -->
+    <div class="login-card">
+        <h2>用户登录</h2>
+        <p class="tip">请输入您的账号和密码</p>
+
+        <div class="alert alert-error" th:if="${error != null}" th:text="${error}">错误提示</div>
+
+        <form th:action="@{/doLogin}" method="post">
+            <div class="form-row">
+                <label for="username">账号</label>
+                <input type="text" id="username" name="username" required autofocus
+                       placeholder="请输入登录账号" th:value="${username}">
+            </div>
+            <div class="form-row">
+                <label for="password">密码</label>
+                <input type="password" id="password" name="password" required
+                       placeholder="请输入密码">
+            </div>
+            <button type="submit" class="btn btn-primary btn-block">登 录</button>
+        </form>
+
+    </div>
+</div>
+
+</body>
+</html>

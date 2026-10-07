@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{common/layout :: head('个人中心')}"></head>
+<body>
+<header th:replace="~{common/layout :: topnav('profile')}"></header>
+<div class="layout">
+    <aside th:replace="~{common/layout :: sidebar('profile')}"></aside>
+    <main class="main">
+        <header th:replace="~{common/layout :: topbar('个人中心', '查看账号信息与修改登录密码')}"></header>
+
+        <div class="content">
+            <div class="alert alert-success alert-auto" th:if="${msg != null}" th:text="${msg}"></div>
+            <div class="alert alert-error alert-auto" th:if="${error != null}" th:text="${error}"></div>
+
+            <div class="grid-2">
+                <div class="card">
+                    <div class="card-head">
+                        <div>
+                            <h3>账号信息</h3>
+                            <div class="sub">姓名与手机号可以自行修改</div>
+                        </div>
+                        <span class="badge badge-blue" th:text="${user.roleName}">角色</span>
+                    </div>
+                    <form th:action="@{/profile/info}" method="post">
+                        <div class="form-row">
+                            <label>登录账号</label>
+                            <input type="text" th:value="${user.username}" disabled>
+                        </div>
+                        <div class="form-row">
+                            <label class="required" for="realName">姓名</label>
+                            <input type="text" id="realName" name="realName" required th:value="${user.realName}">
+                        </div>
+                        <div class="form-row">
+                            <label for="phone">手机号</label>
+                            <input type="tel" id="phone" name="phone" th:value="${user.phone}">
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">保存信息</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="card">
+                    <div class="card-head">
+                        <div>
+                            <h3>修改密码</h3>
+                            <div class="sub">新密码长度不少于 6 位</div>
+                        </div>
+                    </div>
+                    <form th:action="@{/profile/password}" method="post">
+                        <div class="form-row">
+                            <label class="required" for="oldPassword">原密码</label>
+                            <input type="password" id="oldPassword" name="oldPassword" required>
+                        </div>
+                        <div class="form-row">
+                            <label class="required" for="newPassword">新密码</label>
+                            <input type="password" id="newPassword" name="newPassword" required minlength="6">
+                        </div>
+                        <div class="form-row">
+                            <label class="required" for="confirmPassword">确认新密码</label>
+                            <input type="password" id="confirmPassword" name="confirmPassword" required minlength="6">
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">修改密码</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="card-head"><div><h3>系统信息</h3></div></div>
+                <div class="desc-grid">
+                    <div class="desc-item"><span class="k">系统名称</span><span class="v">智慧物业社区管理系统</span></div>
+                    <div class="desc-item"><span class="k">版本号</span><span class="v">v1.0.0</span></div>
+                </div>
+            </div>
+        </div>
+
+        <footer th:replace="~{common/layout :: footer}"></footer>
+    </main>
+</div>
+</body>
+</html>

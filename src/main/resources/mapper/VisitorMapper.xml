@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.smartproperty.mapper.VisitorMapper">
+
+    <sql id="selectBody">
+        SELECT v.id, v.visitor_name, v.phone, v.room_id, v.visit_time, v.leave_time,
+               v.purpose, v.status, v.register_by, v.remark, v.create_time,
+               r.room_no   AS roomNo,
+               b.name      AS buildingName,
+               u.real_name AS registerByName,
+               o.name      AS ownerName
+        FROM t_visitor v
+        LEFT JOIN t_room r ON r.id = v.room_id
+        LEFT JOIN t_building b ON b.id = r.building_id
+        LEFT JOIN t_owner o ON o.id = r.owner_id
+        LEFT JOIN t_user u ON u.id = v.register_by
+    </sql>
+
+    <sql id="condition">
+        <if test="keyword != null and keyword != ''">
+            AND (v.visitor_name LIKE CONCAT('%', #{keyword}, '%')
+                 OR v.phone LIKE CONCAT('%', #{keyword}, '%')
+                 OR r.room_no LIKE CONCAT('%', #{keyword}, '%')
+                 OR b.name LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        <if test="status != null and status != ''">
+            AND v.status = #{status}
+        </if>
+    </sql>
+
+    <select id="findPage" resultType="Visitor">
+        <include refid="selectBody"/>
+        <where>
+            <include refid="condition"/>
+        </where>
+        ORDER BY v.visit_time DESC, v.id DESC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <select id="countByCondition" resultType="long">
+        SELECT COUNT(*)
+        FROM t_visitor v
+        LEFT JOIN t_room r ON r.id = v.room_id
+        LEFT JOIN t_building b ON b.id = r.building_id
+        <where>
+            <include refid="condition"/>
+        </where>
+    </select>
+
+    <select id="findById" resultType="Visitor">
+        <include refid="selectBody"/>
+        WHERE v.id = #{id}
+    </select>
+
+    <insert id="insert" parameterType="Visitor" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_visitor (visitor_name, phone, room_id, visit_time, leave_time,
+                               purpose, status, register_by, remark, create_time)
+        VALUES (#{visitorName}, #{phone}, #{roomId}, #{visitTime}, #{leaveTime},
+                #{purpose}, #{status}, #{registerBy}, #{remark}, NOW())
+    </insert>
+
+    <update id="update" parameterType="Visitor">
+        UPDATE t_visitor
+        SET visitor_name = #{visitorName},
+            phone        = #{phone},
+            room_id      = #{roomId},
+            visit_time   = #{visitTime},
+            leave_time   = #{leaveTime},
+            purpose      = #{purpose},
+            status       = #{status},
+            remark       = #{remark}
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateStatus">
+        UPDATE t_visitor SET status = #{status} WHERE id = #{id}
+    </update>
+
+    <update id="leave">
+        UPDATE t_visitor SET status = '已离开', leave_time = NOW() WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM t_visitor WHERE id = #{id}
+    </delete>
+
+    <select id="countByStatus" resultType="long">
+        SELECT COUNT(*) FROM t_visitor WHERE status = #{status}
+    </select>
+
+    <select id="countToday" resultType="long">
+        SELECT COUNT(*) FROM t_visitor WHERE DATE(visit_time) = CURDATE()
+    </select>
+</mapper>

@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{common/layout :: head('公告管理')}"></head>
+<body>
+<header th:replace="~{common/layout :: topnav('notice')}"></header>
+<div class="layout">
+    <aside th:replace="~{common/layout :: sidebar('notice')}"></aside>
+    <main class="main">
+        <header th:replace="~{common/layout :: topbar('公告通知', '小区公告、通知与紧急信息发布')}"></header>
+
+        <div class="content">
+            <div class="alert alert-success alert-auto" th:if="${msg != null}" th:text="${msg}"></div>
+            <div class="alert alert-error alert-auto" th:if="${error != null}" th:text="${error}"></div>
+
+            <div class="tabs">
+                <a th:href="@{/notice/list(keyword=${keyword})}"
+                   th:classappend="${type == null or type == ''} ? 'active'">全部</a>
+                <a th:href="@{/notice/list(type='公告', keyword=${keyword})}"
+                   th:classappend="${type == '公告'} ? 'active'">公告</a>
+                <a th:href="@{/notice/list(type='通知', keyword=${keyword})}"
+                   th:classappend="${type == '通知'} ? 'active'">通知</a>
+                <a th:href="@{/notice/list(type='紧急', keyword=${keyword})}"
+                   th:classappend="${type == '紧急'} ? 'active'">紧急</a>
+            </div>
+
+            <div class="card">
+                <div class="toolbar">
+                    <form th:action="@{/notice/list}" method="get">
+                        <input type="text" name="keyword" th:value="${keyword}" placeholder="标题 / 内容关键字">
+                        <button type="submit" class="btn btn-primary btn-sm">查询</button>
+                        <a class="btn btn-sm" th:href="@{/notice/list}">重置</a>
+                    </form>
+                    <button type="button" class="btn btn-primary" th:if="${loginUser.role != 'OWNER'}"
+                            onclick="openCreate('dataForm', 'editPanel', '发布公告')">+ 发布公告</button>
+                </div>
+
+                <div class="table-wrap">
+                    <table class="data-table">
+                        <thead>
+                        <tr>
+                            <th>编号</th>
+                            <th>公告标题</th>
+                            <th>类型</th>
+                            <th>发布人</th>
+                            <th>发布时间</th>
+                            <th>浏览量</th>
+                            <th th:if="${loginUser.role != 'OWNER'}">状态</th>
+                            <th>操作</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:if="${page.list.isEmpty()}">
+                            <td colspan="8" class="empty-row">暂无公告</td>
+                        </tr>
+                        <tr th:each="n : ${page.list}">
+                            <td th:text="'#' + ${n.id}">#1</td>
+                            <td class="wrap">
+                                <a th:href="@{/notice/detail(id=${n.id})}" th:text="${n.title}">标题</a>
+                                <span class="badge badge-gray" th:if="${n.status == 0}">草稿</span>
+                            </td>
+                            <td>
+                                <span class="badge"
+                                      th:classappend="${n.type == '紧急'} ? 'badge-red' : (${n.type == '公告'} ? 'badge-blue' : 'badge-gray')"
+                                      th:text="${n.type}">公告</span>
+                            </td>
+                            <td th:text="${n.publisherName}">王丽</td>
+                            <td th:text="${#dates.format(n.publishTime, 'yyyy-MM-dd HH:mm')}">2026-03-01 09:00</td>
+                            <td th:text="${n.viewCount}">0</td>
+                            <td th:if="${loginUser.role != 'OWNER'}">
+                                <span class="badge" th:classappend="${n.status == 1} ? 'badge-green' : 'badge-gray'"
+                                      th:text="${n.status == 1 ? '已发布' : '草稿'}">已发布</span>
+                            </td>
+                            <td>
+                                <div class="btn-row">
+                                    <a class="btn btn-sm" th:href="@{/notice/detail(id=${n.id})}">查看</a>
+                                    <th:block th:if="${loginUser.role != 'OWNER'}">
+                                        <button type="button" class="btn btn-sm"
+                                                th:attr="data-id=${n.id},data-title=${n.title},data-type=${n.type},data-content=${n.content},data-status=${n.status}"
+                                                onclick="openEdit(this, 'dataForm', 'editPanel', '编辑公告')">编辑</button>
+                                        <form th:action="@{/notice/toggle}" method="post">
+                                            <input type="hidden" name="id" th:value="${n.id}">
+                                            <button type="submit" class="btn btn-sm"
+                                                    th:text="${n.status == 1 ? '撤回' : '发布'}">撤回</button>
+                                        </form>
+                                        <form th:action="@{/notice/delete}" method="post"
+                                              onsubmit="return confirmSubmit('确定删除该公告吗？');">
+                                            <input type="hidden" name="id" th:value="${n.id}">
+                                            <button type="submit" class="btn btn-sm btn-danger">删除</button>
+                                        </form>
+                                    </th:block>
+                                </div>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="pager" th:if="${page.total > 0}">
+                    <span class="pager-info">
+                        共 <b th:text="${page.total}">0</b> 条公告，第 <b th:text="${page.pageNum}">1</b>/<b th:text="${page.pages}">1</b> 页
+                    </span>
+                    <div class="pager-btns">
+                        <a class="pg" th:if="${page.hasPrev}"
+                           th:href="@{/notice/list(pageNum=${page.pageNum - 1}, keyword=${keyword}, type=${type})}">上一页</a>
+                        <a class="pg" th:each="n : ${page.pageNumbers}" th:text="${n}"
+                           th:classappend="${n == page.pageNum} ? 'active'"
+                           th:href="@{/notice/list(pageNum=${n}, keyword=${keyword}, type=${type})}">1</a>
+                        <a class="pg" th:if="${page.hasNext}"
+                           th:href="@{/notice/list(pageNum=${page.pageNum + 1}, keyword=${keyword}, type=${type})}">下一页</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card form-panel" id="editPanel" th:if="${loginUser.role != 'OWNER'}">
+                <div class="card-head">
+                    <div>
+                        <h3 class="panel-title">发布公告</h3>
+                        <div class="sub">选择「保存为草稿」时业主端不会显示该公告</div>
+                    </div>
+                </div>
+                <form id="dataForm" th:action="@{/notice/save}" method="post">
+                    <input type="hidden" name="id">
+                    <div class="form-grid">
+                        <div class="form-row">
+                            <label class="required" for="title">公告标题</label>
+                            <input type="text" id="title" name="title" required placeholder="如 小区停水通知">
+                        </div>
+                        <div class="form-row">
+                            <label for="type">公告类型</label>
+                            <select id="type" name="type">
+                                <option value="公告">公告</option>
+                                <option value="通知">通知</option>
+                                <option value="紧急">紧急</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label for="status">发布状态</label>
+                            <select id="status" name="status">
+                                <option value="1">立即发布</option>
+                                <option value="0">保存为草稿</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <label class="required" for="content">公告内容</label>
+                        <textarea id="content" name="content" required style="min-height:140px"
+                                  placeholder="请输入公告正文"></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">保存</button>
+                        <button type="button" class="btn" onclick="closePanel('editPanel')">取消</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <footer th:replace="~{common/layout :: footer}"></footer>
+    </main>
+</div>
+<script th:src="@{/static/js/app.js}"></script>
+</body>
+</html>

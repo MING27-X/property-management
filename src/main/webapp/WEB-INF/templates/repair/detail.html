@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{common/layout :: head('报修工单详情')}"></head>
+<body>
+<header th:replace="~{common/layout :: topnav('repair')}"></header>
+<div class="layout">
+    <aside th:replace="~{common/layout :: sidebar('repair')}"></aside>
+    <main class="main">
+        <header th:replace="~{common/layout :: topbar('报修工单详情', '工单信息与处理流程')}"></header>
+
+        <div class="content">
+            <div class="alert alert-success alert-auto" th:if="${msg != null}" th:text="${msg}"></div>
+            <div class="alert alert-error alert-auto" th:if="${error != null}" th:text="${error}"></div>
+
+            <div class="card">
+                <div class="card-head">
+                    <div>
+                        <h3 th:text="'工单 #' + ${repair.id} + '　' + ${repair.title}">工单</h3>
+                        <div class="sub">
+                            提交时间：<span th:text="${#dates.format(repair.createTime, 'yyyy-MM-dd HH:mm')}"></span>
+                        </div>
+                    </div>
+                    <div>
+                        <span class="badge"
+                              th:classappend="${repair.status == '待处理'} ? 'badge-orange' : (${repair.status == '处理中'} ? 'badge-blue' : 'badge-green')"
+                              th:text="${repair.status}">待处理</span>
+                        <span class="badge"
+                              th:classappend="${repair.urgency == '紧急'} ? 'badge-red' : 'badge-gray'"
+                              th:text="${repair.urgency}">普通</span>
+                    </div>
+                </div>
+
+                <div class="desc-grid">
+                    <div class="desc-item"><span class="k">报修房屋</span>
+                        <span class="v" th:text="${(repair.buildingName != null ? repair.buildingName : '') + ' ' + (repair.roomNo != null ? repair.roomNo : '')}">1号楼 1-101</span>
+                    </div>
+                    <div class="desc-item"><span class="k">报修业主</span><span class="v" th:text="${repair.ownerName}">张三</span></div>
+                    <div class="desc-item"><span class="k">联系电话</span><span class="v" th:text="${repair.ownerPhone}">13900000001</span></div>
+                    <div class="desc-item"><span class="k">报修类别</span><span class="v" th:text="${repair.category}">水电</span></div>
+                    <div class="desc-item"><span class="k">处理人员</span>
+                        <span class="v" th:text="${repair.handlerName != null ? repair.handlerName : '尚未派单'}">尚未派单</span>
+                    </div>
+                    <div class="desc-item"><span class="k">完成时间</span>
+                        <span class="v" th:text="${repair.handleTime != null ? #dates.format(repair.handleTime,'yyyy-MM-dd HH:mm') : '—'}">—</span>
+                    </div>
+                </div>
+
+                <div class="form-row" style="margin-top:16px">
+                    <label>故障描述</label>
+                    <div class="card" style="margin:0;box-shadow:none;background:#fafbfc"
+                         th:text="${repair.content}">故障描述</div>
+                </div>
+
+                <div class="form-row" th:if="${repair.handleRemark != null}">
+                    <label>处理说明</label>
+                    <div class="card" style="margin:0;box-shadow:none;background:#f4fdf8"
+                         th:text="${repair.handleRemark}">处理说明</div>
+                </div>
+            </div>
+
+            <!-- 物业处理面板 -->
+            <div class="grid-2" th:if="${loginUser.role != 'OWNER' and repair.status != '已完成'}">
+                <div class="card">
+                    <div class="card-head"><div><h3>派单处理</h3>
+                        <div class="sub">指定维修人员后工单进入「处理中」</div></div></div>
+                    <form th:action="@{/repair/assign}" method="post">
+                        <input type="hidden" name="id" th:value="${repair.id}">
+                        <div class="form-row">
+                            <label class="required" for="handlerId">处理人员</label>
+                            <select id="handlerId" name="handlerId" required>
+                                <option value="">请选择处理人员</option>
+                                <option th:each="u : ${staffList}" th:value="${u.id}"
+                                        th:text="${u.realName + '（' + u.roleName + '）'}"
+                                        th:selected="${repair.handlerId != null and repair.handlerId == u.id}"></option>
+                            </select>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-primary">确认派单</button>
+                        </div>
+                    </form>
+                </div>
+
+                <div class="card">
+                    <div class="card-head"><div><h3>处理完成</h3>
+                        <div class="sub">填写处理说明后工单结束</div></div></div>
+                    <form th:action="@{/repair/finish}" method="post"
+                          onsubmit="return confirmSubmit('确认该工单已处理完成吗？');">
+                        <input type="hidden" name="id" th:value="${repair.id}">
+                        <input type="hidden" name="handlerId" th:value="${repair.handlerId}">
+                        <div class="form-row">
+                            <label class="required" for="handleRemark">处理说明</label>
+                            <textarea id="handleRemark" name="handleRemark" required
+                                      placeholder="如：已更换水管接头并做防水处理"></textarea>
+                        </div>
+                        <div class="form-actions">
+                            <button type="submit" class="btn btn-success">标记为已完成</button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div class="card">
+                <a class="btn" th:href="@{/repair/list}">← 返回工单列表</a>
+            </div>
+        </div>
+
+        <footer th:replace="~{common/layout :: footer}"></footer>
+    </main>
+</div>
+<script th:src="@{/static/js/app.js}"></script>
+</body>
+</html>

@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{common/layout :: head('我的房屋')}"></head>
+<body>
+<header th:replace="~{common/layout :: topnav('owner')}"></header>
+<div class="layout">
+    <aside th:replace="~{common/layout :: sidebar('owner')}"></aside>
+    <main class="main">
+        <header th:replace="~{common/layout :: topbar('我的房屋', '业主本人房屋与家庭信息')}"></header>
+
+        <div class="content">
+            <div class="alert alert-info" th:if="${owner == null}">
+                当前账号尚未关联业主档案，请联系物业服务中心在「业主管理」中关联您的登录账号。
+            </div>
+
+            <th:block th:if="${owner != null}">
+                <div class="card">
+                    <div class="card-head">
+                        <div>
+                            <h3>业主信息</h3>
+                            <div class="sub">档案编号：<span th:text="${owner.id}">1</span></div>
+                        </div>
+                    </div>
+                    <div class="desc-grid">
+                        <div class="desc-item"><span class="k">业主姓名</span><span class="v" th:text="${owner.name}">张三</span></div>
+                        <div class="desc-item"><span class="k">性别</span><span class="v" th:text="${owner.gender}">男</span></div>
+                        <div class="desc-item"><span class="k">联系电话</span><span class="v" th:text="${owner.phone}">13900000001</span></div>
+                        <div class="desc-item"><span class="k">身份证号</span><span class="v" th:text="${owner.idCard != null ? owner.idCard : '—'}">—</span></div>
+                        <div class="desc-item"><span class="k">家庭人数</span><span class="v" th:text="${owner.familyCount}">3</span></div>
+                        <div class="desc-item"><span class="k">入住日期</span>
+                            <span class="v" th:text="${owner.moveInDate != null ? #dates.format(owner.moveInDate,'yyyy-MM-dd') : '—'}">2026-01-10</span>
+                        </div>
+                        <div class="desc-item"><span class="k">备注</span><span class="v" th:text="${owner.remark != null ? owner.remark : '—'}">—</span></div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-head">
+                        <div>
+                            <h3>名下房屋</h3>
+                            <div class="sub">共 <span th:text="${myRooms != null ? myRooms.size() : 0}">1</span> 套</div>
+                        </div>
+                    </div>
+                    <div class="table-wrap">
+                        <table class="data-table">
+                            <thead>
+                            <tr>
+                                <th>楼栋</th>
+                                <th>房号</th>
+                                <th>楼层</th>
+                                <th>建筑面积(㎡)</th>
+                                <th>房屋类型</th>
+                                <th>房屋状态</th>
+                            </tr>
+                            </thead>
+                            <tbody>
+                            <tr th:if="${myRooms == null or myRooms.isEmpty()}">
+                                <td colspan="6" class="empty-row">暂无房屋信息</td>
+                            </tr>
+                            <tr th:each="r : ${myRooms}">
+                                <td th:text="${r.buildingName}">1号楼</td>
+                                <td th:text="${r.roomNo}">1-101</td>
+                                <td th:text="${r.floor}">1</td>
+                                <td th:text="${r.area}">89.50</td>
+                                <td th:text="${r.roomType}">住宅</td>
+                                <td><span class="badge badge-green" th:text="${r.status}">已入住</span></td>
+                            </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </th:block>
+        </div>
+
+        <footer th:replace="~{common/layout :: footer}"></footer>
+    </main>
+</div>
+</body>
+</html>

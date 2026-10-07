@@ -1,0 +1,131 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.smartproperty.mapper.OwnerMapper">
+
+    <!-- 房屋信息双向匹配：仅当房屋侧 owner_id 仍指向该业主时才视为有效绑定，
+         房屋被置为空置（解除绑定）后，业主管理中房屋列显示为「未绑定」 -->
+    <sql id="selectBody">
+        SELECT o.id, o.user_id, o.name, o.gender, o.phone, o.id_card, o.room_id,
+               o.family_count, o.move_in_date, o.remark, o.create_time,
+               r.room_no       AS roomNo,
+               b.name          AS buildingName,
+               b.building_no   AS buildingNo,
+               u.username      AS username
+        FROM t_owner o
+        LEFT JOIN t_room r ON r.id = o.room_id AND r.owner_id = o.id
+        LEFT JOIN t_building b ON b.id = r.building_id
+        LEFT JOIN t_user u ON u.id = o.user_id
+    </sql>
+
+    <select id="findPage" resultType="Owner">
+        <include refid="selectBody"/>
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (o.name LIKE CONCAT('%', #{keyword}, '%')
+                     OR o.phone LIKE CONCAT('%', #{keyword}, '%')
+                     OR o.id_card LIKE CONCAT('%', #{keyword}, '%')
+                     OR r.room_no LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="buildingId != null">
+                AND r.building_id = #{buildingId}
+            </if>
+        </where>
+        ORDER BY o.id ASC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <select id="countByCondition" resultType="long">
+        SELECT COUNT(*)
+        FROM t_owner o
+        LEFT JOIN t_room r ON r.id = o.room_id AND r.owner_id = o.id
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (o.name LIKE CONCAT('%', #{keyword}, '%')
+                     OR o.phone LIKE CONCAT('%', #{keyword}, '%')
+                     OR o.id_card LIKE CONCAT('%', #{keyword}, '%')
+                     OR r.room_no LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="buildingId != null">
+                AND r.building_id = #{buildingId}
+            </if>
+        </where>
+    </select>
+
+    <select id="findAll" resultType="Owner">
+        <include refid="selectBody"/>
+        ORDER BY o.id ASC
+    </select>
+
+    <select id="findById" resultType="Owner">
+        <include refid="selectBody"/>
+        WHERE o.id = #{id}
+    </select>
+
+    <select id="findByUserId" resultType="Owner">
+        <include refid="selectBody"/>
+        WHERE o.user_id = #{userId}
+        LIMIT 1
+    </select>
+
+    <!-- 统计当前有效绑定该房屋的业主数（双向匹配）：
+         已被解除绑定（房屋置为空置）的档案不再占用房屋，可重新登记新业主 -->
+    <select id="countByRoomId" resultType="int">
+        SELECT COUNT(*) FROM t_owner o
+        JOIN t_room r ON r.id = o.room_id AND r.owner_id = o.id
+        WHERE o.room_id = #{roomId}
+        <if test="excludeId != null">
+            AND o.id != #{excludeId}
+        </if>
+    </select>
+
+    <select id="countAll" resultType="long">
+        SELECT COUNT(*) FROM t_owner
+    </select>
+
+    <select id="countBills" resultType="long">
+        SELECT COUNT(*) FROM t_fee_bill WHERE owner_id = #{ownerId}
+    </select>
+
+    <select id="countRepairs" resultType="long">
+        SELECT COUNT(*) FROM t_repair WHERE owner_id = #{ownerId}
+    </select>
+
+    <select id="countComplaints" resultType="long">
+        SELECT COUNT(*) FROM t_complaint WHERE owner_id = #{ownerId}
+    </select>
+
+    <update id="clearUserLink">
+        UPDATE t_owner SET user_id = NULL WHERE user_id = #{userId}
+    </update>
+
+    <!-- 按关联账号同步业主档案姓名（账号姓名变更时调用） -->
+    <update id="updateNameByUserId">
+        UPDATE t_owner SET name = #{name} WHERE user_id = #{userId}
+    </update>
+
+    <insert id="insert" parameterType="Owner" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_owner (user_id, name, gender, phone, id_card, room_id,
+                             family_count, move_in_date, remark, create_time)
+        VALUES (#{userId}, #{name}, #{gender}, #{phone}, #{idCard}, #{roomId},
+                #{familyCount}, #{moveInDate}, #{remark}, NOW())
+    </insert>
+
+    <update id="update" parameterType="Owner">
+        UPDATE t_owner
+        SET user_id      = #{userId},
+            name         = #{name},
+            gender       = #{gender},
+            phone        = #{phone},
+            id_card      = #{idCard},
+            room_id      = #{roomId},
+            family_count = #{familyCount},
+            move_in_date = #{moveInDate},
+            remark       = #{remark}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM t_owner WHERE id = #{id}
+    </delete>
+</mapper>

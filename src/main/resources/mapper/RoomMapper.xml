@@ -1,0 +1,139 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.smartproperty.mapper.RoomMapper">
+
+    <sql id="selectBody">
+        SELECT r.id, r.building_id, r.room_no, r.floor, r.area, r.room_type,
+               r.status, r.owner_id, r.create_time,
+               b.building_no AS buildingNo,
+               b.name        AS buildingName,
+               o.name        AS ownerName,
+               o.phone       AS ownerPhone
+        FROM t_room r
+        LEFT JOIN t_building b ON b.id = r.building_id
+        LEFT JOIN t_owner o ON o.id = r.owner_id
+    </sql>
+
+    <select id="findPage" resultType="Room">
+        <include refid="selectBody"/>
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (r.room_no LIKE CONCAT('%', #{keyword}, '%')
+                     OR b.name LIKE CONCAT('%', #{keyword}, '%')
+                     OR b.building_no LIKE CONCAT('%', #{keyword}, '%')
+                     OR o.name LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="buildingId != null">
+                AND r.building_id = #{buildingId}
+            </if>
+            <if test="status != null and status != ''">
+                AND r.status = #{status}
+            </if>
+        </where>
+        ORDER BY b.building_no ASC, r.floor ASC, r.room_no ASC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <select id="countByCondition" resultType="long">
+        SELECT COUNT(*)
+        FROM t_room r
+        LEFT JOIN t_building b ON b.id = r.building_id
+        LEFT JOIN t_owner o ON o.id = r.owner_id
+        <where>
+            <if test="keyword != null and keyword != ''">
+                AND (r.room_no LIKE CONCAT('%', #{keyword}, '%')
+                     OR b.name LIKE CONCAT('%', #{keyword}, '%')
+                     OR b.building_no LIKE CONCAT('%', #{keyword}, '%')
+                     OR o.name LIKE CONCAT('%', #{keyword}, '%'))
+            </if>
+            <if test="buildingId != null">
+                AND r.building_id = #{buildingId}
+            </if>
+            <if test="status != null and status != ''">
+                AND r.status = #{status}
+            </if>
+        </where>
+    </select>
+
+    <select id="findById" resultType="Room">
+        <include refid="selectBody"/>
+        WHERE r.id = #{id}
+    </select>
+
+    <select id="findOptions" resultType="Room">
+        <include refid="selectBody"/>
+        <where>
+            <if test="onlyHasOwner">
+                AND r.owner_id IS NOT NULL
+            </if>
+        </where>
+        ORDER BY b.building_no ASC, r.room_no ASC
+    </select>
+
+    <select id="findByOwnerId" resultType="Room">
+        <include refid="selectBody"/>
+        WHERE r.owner_id = #{ownerId}
+        ORDER BY r.id
+    </select>
+
+    <select id="countByStatus" resultType="int">
+        SELECT COUNT(*) FROM t_room WHERE status = #{status}
+    </select>
+
+    <select id="countByBuildingId" resultType="int">
+        SELECT COUNT(*) FROM t_room WHERE building_id = #{buildingId}
+    </select>
+
+    <select id="countAll" resultType="long">
+        SELECT COUNT(*) FROM t_room
+    </select>
+
+    <select id="countBills" resultType="long">
+        SELECT COUNT(*) FROM t_fee_bill WHERE room_id = #{roomId}
+    </select>
+
+    <select id="countRepairs" resultType="long">
+        SELECT COUNT(*) FROM t_repair WHERE room_id = #{roomId}
+    </select>
+
+    <select id="countVisitors" resultType="long">
+        SELECT COUNT(*) FROM t_visitor WHERE room_id = #{roomId}
+    </select>
+
+    <select id="countByRoomNo" resultType="int">
+        SELECT COUNT(*) FROM t_room
+        WHERE building_id = #{buildingId} AND room_no = #{roomNo}
+        <if test="excludeId != null">
+            AND id != #{excludeId}
+        </if>
+    </select>
+
+    <insert id="insert" parameterType="Room" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_room (building_id, room_no, floor, area, room_type, status, owner_id, create_time)
+        VALUES (#{buildingId}, #{roomNo}, #{floor}, #{area}, #{roomType}, #{status}, #{ownerId}, NOW())
+    </insert>
+
+    <update id="update" parameterType="Room">
+        UPDATE t_room
+        SET building_id = #{buildingId},
+            room_no     = #{roomNo},
+            floor       = #{floor},
+            area        = #{area},
+            room_type   = #{roomType},
+            status      = #{status}
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateOwner">
+        UPDATE t_room SET owner_id = #{ownerId} WHERE id = #{id}
+    </update>
+
+    <update id="updateStatusAndOwner">
+        UPDATE t_room SET owner_id = #{ownerId}, status = #{status} WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM t_room WHERE id = #{id}
+    </delete>
+</mapper>

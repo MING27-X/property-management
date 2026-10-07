@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.smartproperty.mapper.RepairMapper">
+
+    <sql id="selectBody">
+        SELECT rp.id, rp.room_id, rp.owner_id, rp.category, rp.title, rp.content,
+               rp.urgency, rp.status, rp.handler_id, rp.handle_remark, rp.handle_time,
+               rp.create_time,
+               r.room_no     AS roomNo,
+               b.name        AS buildingName,
+               o.name        AS ownerName,
+               o.phone       AS ownerPhone,
+               h.real_name   AS handlerName
+        FROM t_repair rp
+        LEFT JOIN t_room r ON r.id = rp.room_id
+        LEFT JOIN t_building b ON b.id = r.building_id
+        LEFT JOIN t_owner o ON o.id = rp.owner_id
+        LEFT JOIN t_user h ON h.id = rp.handler_id
+    </sql>
+
+    <sql id="condition">
+        <if test="keyword != null and keyword != ''">
+            AND (rp.title LIKE CONCAT('%', #{keyword}, '%')
+                 OR o.name LIKE CONCAT('%', #{keyword}, '%')
+                 OR r.room_no LIKE CONCAT('%', #{keyword}, '%')
+                 OR b.name LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        <if test="status != null and status != ''">
+            AND rp.status = #{status}
+        </if>
+        <if test="category != null and category != ''">
+            AND rp.category = #{category}
+        </if>
+        <if test="ownerId != null">
+            AND rp.owner_id = #{ownerId}
+        </if>
+    </sql>
+
+    <select id="findPage" resultType="Repair">
+        <include refid="selectBody"/>
+        <where>
+            <include refid="condition"/>
+        </where>
+        ORDER BY FIELD(rp.status, '待处理', '处理中', '已完成'), rp.create_time DESC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <select id="countByCondition" resultType="long">
+        SELECT COUNT(*)
+        FROM t_repair rp
+        LEFT JOIN t_room r ON r.id = rp.room_id
+        LEFT JOIN t_building b ON b.id = r.building_id
+        LEFT JOIN t_owner o ON o.id = rp.owner_id
+        <where>
+            <include refid="condition"/>
+        </where>
+    </select>
+
+    <select id="findById" resultType="Repair">
+        <include refid="selectBody"/>
+        WHERE rp.id = #{id}
+    </select>
+
+    <insert id="insert" parameterType="Repair" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_repair (room_id, owner_id, category, title, content, urgency, status,
+                              handler_id, handle_remark, handle_time, create_time)
+        VALUES (#{roomId}, #{ownerId}, #{category}, #{title}, #{content}, #{urgency}, #{status},
+                #{handlerId}, #{handleRemark}, #{handleTime}, NOW())
+    </insert>
+
+    <update id="update" parameterType="Repair">
+        UPDATE t_repair
+        SET category      = #{category},
+            title         = #{title},
+            content       = #{content},
+            urgency       = #{urgency},
+            status        = #{status},
+            handle_remark = #{handleRemark}
+        WHERE id = #{id}
+    </update>
+
+    <update id="assign">
+        UPDATE t_repair
+        SET handler_id = #{handlerId}, status = #{status}
+        WHERE id = #{id}
+    </update>
+
+    <update id="finish">
+        UPDATE t_repair
+        SET handler_id    = #{handlerId},
+            handle_remark = #{handleRemark},
+            status        = '已完成',
+            handle_time   = NOW()
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM t_repair WHERE id = #{id}
+    </delete>
+
+    <select id="countByStatus" resultType="long">
+        SELECT COUNT(*) FROM t_repair WHERE status = #{status}
+    </select>
+
+    <select id="countAll" resultType="long">
+        SELECT COUNT(*) FROM t_repair
+    </select>
+
+    <select id="countGroupByStatus" resultType="map">
+        SELECT status AS status, COUNT(*) AS num FROM t_repair GROUP BY status
+    </select>
+
+    <select id="findLatest" resultType="Repair">
+        <include refid="selectBody"/>
+        ORDER BY rp.create_time DESC
+        LIMIT #{limit}
+    </select>
+</mapper>

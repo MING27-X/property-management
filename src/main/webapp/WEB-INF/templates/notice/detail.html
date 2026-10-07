@@ -1,0 +1,58 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{common/layout :: head('公告详情')}"></head>
+<body>
+<header th:replace="~{common/layout :: topnav('notice')}"></header>
+<div class="layout">
+    <aside th:replace="~{common/layout :: sidebar('notice')}"></aside>
+    <main class="main">
+        <header th:replace="~{common/layout :: topbar('公告详情', '小区公告与通知正文')}"></header>
+
+        <div class="content">
+            <div class="grid-2" style="grid-template-columns:2fr 1fr">
+                <div class="card">
+                    <div class="card-head">
+                        <div>
+                            <h3 th:text="${notice.title}">公告标题</h3>
+                            <div class="sub">
+                                <span th:text="'发布人：' + ${notice.publisherName != null ? notice.publisherName : '物业服务中心'}"></span>
+                                ｜ 发布时间：<span th:text="${#dates.format(notice.publishTime,'yyyy-MM-dd HH:mm')}"></span>
+                                ｜ 浏览量：<span th:text="${notice.viewCount}">0</span>
+                            </div>
+                        </div>
+                        <span class="badge"
+                              th:classappend="${notice.type == '紧急'} ? 'badge-red' : (${notice.type == '公告'} ? 'badge-blue' : 'badge-gray')"
+                              th:text="${notice.type}">公告</span>
+                    </div>
+                    <div style="white-space:pre-wrap;line-height:1.9;font-size:14px"
+                         th:text="${notice.content}">公告内容</div>
+                    <div class="form-actions">
+                        <a class="btn" th:href="@{/notice/list}">← 返回公告列表</a>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <div class="card-head"><div><h3>最新公告</h3></div></div>
+                    <ul class="timeline">
+                        <li th:each="n : ${latestList}">
+                            <div class="t-title">
+                                <a th:href="@{/notice/detail(id=${n.id})}" th:text="${n.title}">标题</a>
+                            </div>
+                            <div class="t-meta">
+                                <span th:text="${n.type}">公告</span> ·
+                                <span th:text="${#dates.format(n.publishTime,'yyyy-MM-dd')}">2026-03-01</span>
+                            </div>
+                        </li>
+                        <li th:if="${latestList == null or latestList.isEmpty()}">
+                            <div class="t-title">暂无公告</div>
+                        </li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+
+        <footer th:replace="~{common/layout :: footer}"></footer>
+    </main>
+</div>
+</body>
+</html>

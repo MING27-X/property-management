@@ -1,0 +1,121 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.smartproperty.mapper.ParkingMapper">
+
+    <sql id="selectBody">
+        SELECT p.id, p.space_no, p.area, p.type, p.status, p.owner_id, p.plate_no,
+               p.monthly_fee, p.rent_start, p.rent_end, p.create_time,
+               o.name  AS ownerName,
+               o.phone AS ownerPhone
+        FROM t_parking p
+        LEFT JOIN t_owner o ON o.id = p.owner_id
+    </sql>
+
+    <sql id="condition">
+        <if test="keyword != null and keyword != ''">
+            AND (p.space_no LIKE CONCAT('%', #{keyword}, '%')
+                 OR p.plate_no LIKE CONCAT('%', #{keyword}, '%')
+                 OR p.area LIKE CONCAT('%', #{keyword}, '%')
+                 OR o.name LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        <if test="status != null and status != ''">
+            AND p.status = #{status}
+        </if>
+        <if test="type != null and type != ''">
+            AND p.type = #{type}
+        </if>
+    </sql>
+
+    <select id="findPage" resultType="Parking">
+        <include refid="selectBody"/>
+        <where>
+            <include refid="condition"/>
+        </where>
+        ORDER BY p.area ASC, p.space_no ASC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <select id="countByCondition" resultType="long">
+        SELECT COUNT(*)
+        FROM t_parking p
+        LEFT JOIN t_owner o ON o.id = p.owner_id
+        <where>
+            <include refid="condition"/>
+        </where>
+    </select>
+
+    <select id="findById" resultType="Parking">
+        <include refid="selectBody"/>
+        WHERE p.id = #{id}
+    </select>
+
+    <select id="countBySpaceNo" resultType="int">
+        SELECT COUNT(*) FROM t_parking
+        WHERE space_no = #{spaceNo}
+        <if test="excludeId != null">
+            AND id != #{excludeId}
+        </if>
+    </select>
+
+    <insert id="insert" parameterType="Parking" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_parking (space_no, area, type, status, owner_id, plate_no,
+                               monthly_fee, rent_start, rent_end, create_time)
+        VALUES (#{spaceNo}, #{area}, #{type}, #{status}, #{ownerId}, #{plateNo},
+                #{monthlyFee}, #{rentStart}, #{rentEnd}, NOW())
+    </insert>
+
+    <update id="update" parameterType="Parking">
+        UPDATE t_parking
+        SET space_no    = #{spaceNo},
+            area        = #{area},
+            type        = #{type},
+            status      = #{status},
+            owner_id    = #{ownerId},
+            plate_no    = #{plateNo},
+            monthly_fee = #{monthlyFee},
+            rent_start  = #{rentStart},
+            rent_end    = #{rentEnd}
+        WHERE id = #{id}
+    </update>
+
+    <update id="rent">
+        UPDATE t_parking
+        SET owner_id   = #{ownerId},
+            plate_no   = #{plateNo},
+            status     = '已租用',
+            rent_start = CURDATE(),
+            rent_end   = DATE_ADD(CURDATE(), INTERVAL 1 YEAR)
+        WHERE id = #{id}
+    </update>
+
+    <update id="release">
+        UPDATE t_parking
+        SET owner_id   = NULL,
+            plate_no   = NULL,
+            status     = '空闲',
+            rent_start = NULL,
+            rent_end   = NULL
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM t_parking WHERE id = #{id}
+    </delete>
+
+    <select id="countByStatus" resultType="long">
+        SELECT COUNT(*) FROM t_parking WHERE status = #{status}
+    </select>
+
+    <select id="countAll" resultType="long">
+        SELECT COUNT(*) FROM t_parking
+    </select>
+
+    <select id="sumRentedFee" resultType="java.math.BigDecimal">
+        SELECT IFNULL(SUM(monthly_fee), 0) FROM t_parking WHERE status = '已租用'
+    </select>
+
+    <select id="countByOwner" resultType="long">
+        SELECT COUNT(*) FROM t_parking WHERE owner_id = #{ownerId}
+    </select>
+</mapper>

@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.smartproperty.mapper.FeeBillMapper">
+
+    <sql id="selectBody">
+        SELECT f.id, f.room_id, f.owner_id, f.fee_type, f.period, f.amount, f.status,
+               f.due_date, f.pay_time, f.pay_method, f.create_time,
+               r.room_no     AS roomNo,
+               b.name        AS buildingName,
+               o.name        AS ownerName,
+               o.phone       AS ownerPhone
+        FROM t_fee_bill f
+        LEFT JOIN t_room r ON r.id = f.room_id
+        LEFT JOIN t_building b ON b.id = r.building_id
+        LEFT JOIN t_owner o ON o.id = f.owner_id
+    </sql>
+
+    <sql id="condition">
+        <if test="keyword != null and keyword != ''">
+            AND (o.name LIKE CONCAT('%', #{keyword}, '%')
+                 OR r.room_no LIKE CONCAT('%', #{keyword}, '%')
+                 OR b.name LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        <if test="status != null and status != ''">
+            AND f.status = #{status}
+        </if>
+        <if test="feeType != null and feeType != ''">
+            AND f.fee_type = #{feeType}
+        </if>
+        <if test="period != null and period != ''">
+            AND f.period = #{period}
+        </if>
+        <if test="ownerId != null">
+            AND f.owner_id = #{ownerId}
+        </if>
+    </sql>
+
+    <select id="findPage" resultType="FeeBill">
+        <include refid="selectBody"/>
+        <where>
+            <include refid="condition"/>
+        </where>
+        ORDER BY f.period DESC, f.status ASC, f.id DESC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <select id="countByCondition" resultType="long">
+        SELECT COUNT(*)
+        FROM t_fee_bill f
+        LEFT JOIN t_room r ON r.id = f.room_id
+        LEFT JOIN t_building b ON b.id = r.building_id
+        LEFT JOIN t_owner o ON o.id = f.owner_id
+        <where>
+            <include refid="condition"/>
+        </where>
+    </select>
+
+    <select id="findById" resultType="FeeBill">
+        <include refid="selectBody"/>
+        WHERE f.id = #{id}
+    </select>
+
+    <insert id="insert" parameterType="FeeBill" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_fee_bill (room_id, owner_id, fee_type, period, amount, status,
+                                due_date, pay_time, pay_method, create_time)
+        VALUES (#{roomId}, #{ownerId}, #{feeType}, #{period}, #{amount}, #{status},
+                #{dueDate}, #{payTime}, #{payMethod}, NOW())
+    </insert>
+
+    <update id="update" parameterType="FeeBill">
+        UPDATE t_fee_bill
+        SET room_id    = #{roomId},
+            owner_id   = #{ownerId},
+            fee_type   = #{feeType},
+            period     = #{period},
+            amount     = #{amount},
+            status     = #{status},
+            due_date   = #{dueDate},
+            pay_time   = #{payTime},
+            pay_method = #{payMethod}
+        WHERE id = #{id}
+    </update>
+
+    <update id="pay">
+        UPDATE t_fee_bill
+        SET status = '已缴', pay_time = NOW(), pay_method = #{payMethod}
+        WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM t_fee_bill WHERE id = #{id}
+    </delete>
+
+    <select id="sumAmount" resultType="java.math.BigDecimal">
+        SELECT IFNULL(SUM(amount), 0) FROM t_fee_bill
+        <where>
+            <if test="status != null and status != ''">
+                AND status = #{status}
+            </if>
+            <if test="period != null and period != ''">
+                AND period = #{period}
+            </if>
+            <if test="ownerId != null">
+                AND owner_id = #{ownerId}
+            </if>
+        </where>
+    </select>
+
+    <select id="countByStatus" resultType="long">
+        SELECT COUNT(*) FROM t_fee_bill WHERE status = #{status}
+    </select>
+
+    <select id="countUnpaidByOwner" resultType="long">
+        SELECT COUNT(*) FROM t_fee_bill WHERE status = '未缴' AND owner_id = #{ownerId}
+    </select>
+
+    <select id="sumByPeriod" resultType="map">
+        SELECT period AS period,
+               SUM(amount) AS total,
+               SUM(CASE WHEN status = '已缴' THEN amount ELSE 0 END) AS paid
+        FROM t_fee_bill
+        GROUP BY period
+        ORDER BY period DESC
+        LIMIT 6
+    </select>
+</mapper>

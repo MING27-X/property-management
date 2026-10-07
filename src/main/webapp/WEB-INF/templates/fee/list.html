@@ -1,0 +1,280 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{common/layout :: head('收费管理')}"></head>
+<body>
+<header th:replace="~{common/layout :: topnav('fee')}"></header>
+<div class="layout">
+    <aside th:replace="~{common/layout :: sidebar('fee')}"></aside>
+    <main class="main">
+        <header th:replace="~{common/layout :: topbar('收费管理', '物业费 / 水电费 / 停车费账单与缴费核销')}"></header>
+
+        <div class="content">
+            <div class="alert alert-success alert-auto" th:if="${msg != null}" th:text="${msg}"></div>
+            <div class="alert alert-error alert-auto" th:if="${error != null}" th:text="${error}"></div>
+
+            <!-- 统计卡片 -->
+            <div class="stat-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">📄</div>
+                    <div>
+                        <div class="stat-value" th:text="${totalAmount} + ' 元'">0</div>
+                        <div class="stat-label" th:text="${loginUser.role == 'OWNER' ? '累计应缴金额' : currentPeriod + ' 月应收金额'}">本月应收</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon green">✅</div>
+                    <div>
+                        <div class="stat-value" th:text="${paidAmount} + ' 元'">0</div>
+                        <div class="stat-label" th:text="${loginUser.role == 'OWNER' ? '累计已缴金额' : currentPeriod + ' 月实收金额'}">本月实收</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon red">⚠️</div>
+                    <div>
+                        <div class="stat-value" th:text="${unpaidAmount} + ' 元'">0</div>
+                        <div class="stat-label" th:text="${loginUser.role == 'OWNER' ? '待缴金额' : '累计欠费金额'}">欠费金额</div>
+                    </div>
+                </div>
+                <div class="stat-card" th:if="${loginUser.role == 'OWNER'}">
+                    <div class="stat-icon orange">🧾</div>
+                    <div>
+                        <div class="stat-value" th:text="${unpaidCount} + ' 笔'">0</div>
+                        <div class="stat-label">未缴账单数量</div>
+                    </div>
+                </div>
+                <div class="stat-card" th:if="${loginUser.role != 'OWNER'}">
+                    <div class="stat-icon purple">🏘️</div>
+                    <div>
+                        <div class="stat-value" th:text="${page.total} + ' 条'">0</div>
+                        <div class="stat-label">当前筛选账单数</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tabs">
+                <a th:href="@{/fee/list(feeType=${feeType}, period=${period})}"
+                   th:classappend="${status == null or status == ''} ? 'active'">全部</a>
+                <a th:href="@{/fee/list(status='未缴', feeType=${feeType}, period=${period})}"
+                   th:classappend="${status == '未缴'} ? 'active'">待缴费</a>
+                <a th:href="@{/fee/list(status='已缴', feeType=${feeType}, period=${period})}"
+                   th:classappend="${status == '已缴'} ? 'active'">已缴费</a>
+            </div>
+
+            <div class="card">
+                <div class="toolbar">
+                    <form th:action="@{/fee/list}" method="get">
+                        <input type="text" name="keyword" th:value="${keyword}" placeholder="业主姓名 / 房号"
+                               th:if="${loginUser.role != 'OWNER'}">
+                        <select name="feeType">
+                            <option value="">全部费用类型</option>
+                            <option th:each="t : ${ {'物业费','水费','电费','停车费'} }" th:value="${t}" th:text="${t}"
+                                    th:selected="${feeType == t}"></option>
+                        </select>
+                        <select name="period" th:if="${loginUser.role != 'OWNER'}">
+                            <option value="">全部周期</option>
+                            <option th:each="p : ${periods}" th:value="${p}" th:text="${p}"
+                                    th:selected="${period == p}"></option>
+                        </select>
+                        <button type="submit" class="btn btn-primary btn-sm">查询</button>
+                        <a class="btn btn-sm" th:href="@{/fee/list}">重置</a>
+                    </form>
+                    <button type="button" class="btn btn-primary" th:if="${loginUser.role == 'ADMIN'}"
+                            onclick="openCreate('dataForm', 'editPanel', '新增账单')">+ 新增账单</button>
+                </div>
+
+                <div class="muted" style="font-size:12.5px;margin:-4px 0 14px"
+                     th:if="${loginUser.role == 'STAFF'}">
+                    说明：账单的新增 / 修改 / 删除由系统管理员操作，物业员工可查看全部账单并办理缴费核销。
+                </div>
+
+                <!-- 业主端：卡片式账单列表 -->
+                <div class="item-list" th:if="${loginUser.role == 'OWNER'}">
+                    <div class="item-card" th:each="f : ${page.list}">
+                        <div class="item-head">
+                            <div class="item-title">
+                                <span th:text="${f.feeType} + ' · ' + ${f.period}">物业费 · 2026-03</span>
+                                <span class="badge badge-blue"
+                                      th:text="${(f.buildingName != null ? f.buildingName : '') + ' ' + (f.roomNo != null ? f.roomNo : '')}">房屋</span>
+                            </div>
+                            <span class="badge"
+                                  th:classappend="${f.status == '已缴'} ? 'badge-green' : 'badge-orange'"
+                                  th:text="${f.status == '已缴' ? '已缴费' : '待缴费'}">待缴费</span>
+                        </div>
+                        <div class="item-body">
+                            费用类型：<span th:text="${f.feeType}">物业费</span>
+                            ｜ 缴费周期：<span th:text="${f.period}">2026-03</span>
+                            ｜ 截止日期：<span th:text="${f.dueDate != null ? #dates.format(f.dueDate,'yyyy-MM-dd') : '—'}">—</span>
+                            <span th:if="${f.payTime != null}">
+                                ｜ 缴费时间：<span th:text="${#dates.format(f.payTime,'yyyy-MM-dd HH:mm')}"></span>
+                                ｜ 缴费方式：<span th:text="${f.payMethod != null ? f.payMethod : '—'}"></span>
+                            </span>
+                        </div>
+                        <div class="item-foot">
+                            <span class="item-amount" th:classappend="${f.status == '已缴'} ? 'green'"
+                                  th:text="'￥' + ${f.amount}">￥0</span>
+                            <div class="btn-row">
+                                <form th:if="${f.status == '未缴'}" th:action="@{/fee/pay}" method="post"
+                                      onsubmit="return confirmSubmit('确认完成缴费吗？');">
+                                    <input type="hidden" name="id" th:value="${f.id}">
+                                    <input type="hidden" name="payMethod" value="微信支付">
+                                    <button type="submit" class="btn btn-sm btn-primary">立即缴费</button>
+                                </form>
+                                <span class="badge badge-green" th:if="${f.status == '已缴'}">已完成缴费</span>
+                            </div>
+                        </div>
+                    </div>
+                    <p class="muted" th:if="${page.list.isEmpty()}" style="text-align:center;padding:34px 0">
+                        暂无账单记录，当前没有需要缴纳的费用。
+                    </p>
+                </div>
+
+                <div class="table-wrap" th:if="${loginUser.role != 'OWNER'}">
+                    <table class="data-table">
+                        <thead>
+                        <tr>
+                            <th>楼栋</th>
+                            <th>房号</th>
+                            <th th:if="${loginUser.role != 'OWNER'}">业主</th>
+                            <th>费用类型</th>
+                            <th>费用周期</th>
+                            <th>应缴金额</th>
+                            <th>状态</th>
+                            <th>截止日期</th>
+                            <th>缴费时间</th>
+                            <th>缴费方式</th>
+                            <th>操作</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:if="${page.list.isEmpty()}">
+                            <td colspan="11" class="empty-row">暂无账单数据</td>
+                        </tr>
+                        <tr th:each="f : ${page.list}">
+                            <td th:text="${f.buildingName}">1号楼</td>
+                            <td th:text="${f.roomNo}">1-101</td>
+                            <td th:if="${loginUser.role != 'OWNER'}" th:text="${f.ownerName}">张三</td>
+                            <td><span class="badge badge-blue" th:text="${f.feeType}">物业费</span></td>
+                            <td th:text="${f.period}">2026-03</td>
+                            <td><strong th:text="${f.amount}">178.00</strong> 元</td>
+                            <td>
+                                <span class="badge" th:classappend="${f.status == '已缴'} ? 'badge-green' : 'badge-red'"
+                                      th:text="${f.status}">未缴</span>
+                            </td>
+                            <td th:text="${f.dueDate != null ? #dates.format(f.dueDate,'yyyy-MM-dd') : '—'}">2026-03-31</td>
+                            <td th:text="${f.payTime != null ? #dates.format(f.payTime,'yyyy-MM-dd HH:mm') : '—'}">—</td>
+                            <td th:text="${f.payMethod != null ? f.payMethod : '—'}">—</td>
+                            <td>
+                                <div class="btn-row">
+                                    <form th:if="${f.status == '未缴'}" th:action="@{/fee/pay}" method="post"
+                                          onsubmit="return confirmSubmit('确认完成缴费吗？');">
+                                        <input type="hidden" name="id" th:value="${f.id}">
+                                        <input type="hidden" name="payMethod"
+                                               th:value="${loginUser.role == 'OWNER' ? '微信支付' : '线下缴费'}">
+                                        <button type="submit" class="btn btn-sm btn-success">缴费</button>
+                                    </form>
+                                    <th:block th:if="${loginUser.role == 'ADMIN'}">
+                                        <button type="button" class="btn btn-sm"
+                                                th:attr="data-id=${f.id},data-roomid=${f.roomId},data-feetype=${f.feeType},data-period=${f.period},data-amount=${f.amount},data-status=${f.status},data-duedate=${f.dueDate != null ? #dates.format(f.dueDate,'yyyy-MM-dd') : ''},data-paymethod=${f.payMethod}"
+                                                onclick="openEdit(this, 'dataForm', 'editPanel', '编辑账单')">编辑</button>
+                                        <form th:action="@{/fee/delete}" method="post"
+                                              onsubmit="return confirmSubmit('确定删除该账单吗？');">
+                                            <input type="hidden" name="id" th:value="${f.id}">
+                                            <button type="submit" class="btn btn-sm btn-danger">删除</button>
+                                        </form>
+                                    </th:block>
+                                </div>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="pager" th:if="${page.total > 0}">
+                    <span class="pager-info">
+                        共 <b th:text="${page.total}">0</b> 条记录，第 <b th:text="${page.pageNum}">1</b>/<b th:text="${page.pages}">1</b> 页
+                    </span>
+                    <div class="pager-btns">
+                        <a class="pg" th:if="${page.hasPrev}"
+                           th:href="@{/fee/list(pageNum=${page.pageNum - 1}, keyword=${keyword}, status=${status}, feeType=${feeType}, period=${period})}">上一页</a>
+                        <a class="pg" th:each="n : ${page.pageNumbers}" th:text="${n}"
+                           th:classappend="${n == page.pageNum} ? 'active'"
+                           th:href="@{/fee/list(pageNum=${n}, keyword=${keyword}, status=${status}, feeType=${feeType}, period=${period})}">1</a>
+                        <a class="pg" th:if="${page.hasNext}"
+                           th:href="@{/fee/list(pageNum=${page.pageNum + 1}, keyword=${keyword}, status=${status}, feeType=${feeType}, period=${period})}">下一页</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 新增 / 编辑账单（仅物业员工与管理员） -->
+            <div class="card form-panel" id="editPanel" th:if="${loginUser.role == 'ADMIN'}">
+                <div class="card-head">
+                    <div>
+                        <h3 class="panel-title">新增账单</h3>
+                        <div class="sub">选择房屋后，费用归属业主将自动关联该房屋登记的业主</div>
+                    </div>
+                </div>
+                <form id="dataForm" th:action="@{/fee/save}" method="post">
+                    <input type="hidden" name="id">
+                    <div class="form-grid">
+                        <div class="form-row">
+                            <label class="required" for="roomId">房屋</label>
+                            <select id="roomId" name="roomId" required>
+                                <option value="">请选择房屋</option>
+                                <option th:each="r : ${rooms}" th:value="${r.id}" th:text="${r.label}"></option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label class="required" for="feeType">费用类型</label>
+                            <select id="feeType" name="feeType">
+                                <option value="物业费">物业费</option>
+                                <option value="水费">水费</option>
+                                <option value="电费">电费</option>
+                                <option value="停车费">停车费</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label class="required" for="period">费用周期</label>
+                            <input type="text" id="period" name="period" required
+                                   th:value="${currentPeriod}" placeholder="如 2026-03">
+                        </div>
+                        <div class="form-row">
+                            <label class="required" for="amount">应缴金额(元)</label>
+                            <input type="number" step="0.01" id="amount" name="amount" required placeholder="如 178.00">
+                        </div>
+                        <div class="form-row">
+                            <label for="dueDate">缴费截止日期</label>
+                            <input type="date" id="dueDate" name="dueDate">
+                        </div>
+                        <div class="form-row">
+                            <label for="status">缴费状态</label>
+                            <select id="status" name="status">
+                                <option value="未缴">未缴</option>
+                                <option value="已缴">已缴</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label for="payMethod">缴费方式</label>
+                            <select id="payMethod" name="payMethod">
+                                <option value="">未缴费</option>
+                                <option value="微信支付">微信支付</option>
+                                <option value="支付宝">支付宝</option>
+                                <option value="现金">现金</option>
+                                <option value="银行转账">银行转账</option>
+                                <option value="线下缴费">线下缴费</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">保存</button>
+                        <button type="button" class="btn" onclick="closePanel('editPanel')">取消</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <footer th:replace="~{common/layout :: footer}"></footer>
+    </main>
+</div>
+<script th:src="@{/static/js/app.js}"></script>
+</body>
+</html>

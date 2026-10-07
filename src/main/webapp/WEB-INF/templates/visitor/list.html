@@ -1,0 +1,196 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{common/layout :: head('访客登记')}"></head>
+<body>
+<div class="layout">
+    <aside th:replace="~{common/layout :: sidebar('visitor')}"></aside>
+    <main class="main">
+        <header th:replace="~{common/layout :: topbar('访客登记', '来访人员登记、到访确认与离开登记')}"></header>
+
+        <div class="content">
+            <div class="alert alert-success alert-auto" th:if="${msg != null}" th:text="${msg}"></div>
+            <div class="alert alert-error alert-auto" th:if="${error != null}" th:text="${error}"></div>
+
+            <div class="stat-grid">
+                <div class="stat-card">
+                    <div class="stat-icon">📅</div>
+                    <div>
+                        <div class="stat-value" th:text="${todayCount}">0</div>
+                        <div class="stat-label">今日访客</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon orange">⏰</div>
+                    <div>
+                        <div class="stat-value" th:text="${waitingCount}">0</div>
+                        <div class="stat-label">待到访</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon green">🚶</div>
+                    <div>
+                        <div class="stat-value" th:text="${visitedCount}">0</div>
+                        <div class="stat-label">已到访未离开</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon purple">📋</div>
+                    <div>
+                        <div class="stat-value" th:text="${page.total}">0</div>
+                        <div class="stat-label">当前筛选记录</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="toolbar">
+                    <form th:action="@{/visitor/list}" method="get">
+                        <input type="text" name="keyword" th:value="${keyword}" placeholder="访客姓名 / 电话 / 房号">
+                        <select name="status">
+                            <option value="">全部状态</option>
+                            <option th:each="s : ${ {'待到访','已到访','已离开'} }" th:value="${s}" th:text="${s}"
+                                    th:selected="${status == s}"></option>
+                        </select>
+                        <button type="submit" class="btn btn-primary btn-sm">查询</button>
+                        <a class="btn btn-sm" th:href="@{/visitor/list}">重置</a>
+                    </form>
+                    <button type="button" class="btn btn-primary"
+                            onclick="openCreate('dataForm', 'editPanel', '新增访客登记')">+ 访客登记</button>
+                </div>
+
+                <div class="table-wrap">
+                    <table class="data-table">
+                        <thead>
+                        <tr>
+                            <th>编号</th>
+                            <th>访客姓名</th>
+                            <th>联系电话</th>
+                            <th>访问房屋</th>
+                            <th>到访时间</th>
+                            <th>离开时间</th>
+                            <th>来访事由</th>
+                            <th>状态</th>
+                            <th>登记人</th>
+                            <th>操作</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:if="${page.list.isEmpty()}">
+                            <td colspan="10" class="empty-row">暂无访客记录</td>
+                        </tr>
+                        <tr th:each="v : ${page.list}">
+                            <td th:text="'#' + ${v.id}">#1</td>
+                            <td th:text="${v.visitorName}">刘先生</td>
+                            <td th:text="${v.phone}">13700000001</td>
+                            <td th:text="${(v.buildingName != null ? v.buildingName : '') + ' ' + (v.roomNo != null ? v.roomNo : '')}">1号楼 1-101</td>
+                            <td th:text="${v.visitTime != null ? #dates.format(v.visitTime,'yyyy-MM-dd HH:mm') : '—'}">2026-03-17 09:30</td>
+                            <td th:text="${v.leaveTime != null ? #dates.format(v.leaveTime,'yyyy-MM-dd HH:mm') : '—'}">—</td>
+                            <td th:text="${v.purpose}">亲友拜访</td>
+                            <td>
+                                <span class="badge"
+                                      th:classappend="${v.status == '待到访'} ? 'badge-orange' : (${v.status == '已到访'} ? 'badge-blue' : 'badge-gray')"
+                                      th:text="${v.status}">待到访</span>
+                            </td>
+                            <td th:text="${v.registerByName}">王丽</td>
+                            <td>
+                                <div class="btn-row">
+                                    <form th:if="${v.status == '待到访'}" th:action="@{/visitor/arrive}" method="post">
+                                        <input type="hidden" name="id" th:value="${v.id}">
+                                        <button type="submit" class="btn btn-sm btn-success">确认到访</button>
+                                    </form>
+                                    <form th:if="${v.status == '已到访'}" th:action="@{/visitor/leave}" method="post">
+                                        <input type="hidden" name="id" th:value="${v.id}">
+                                        <button type="submit" class="btn btn-sm btn-primary">登记离开</button>
+                                    </form>
+                                    <button type="button" class="btn btn-sm"
+                                            th:attr="data-id=${v.id},data-visitorname=${v.visitorName},data-phone=${v.phone},data-roomid=${v.roomId},data-visittime=${v.visitTime != null ? #dates.format(v.visitTime,'yyyy-MM-dd HH:mm') : ''},data-purpose=${v.purpose},data-status=${v.status},data-remark=${v.remark}"
+                                            onclick="openEdit(this, 'dataForm', 'editPanel', '编辑访客登记')">编辑</button>
+                                    <form th:action="@{/visitor/delete}" method="post"
+                                          onsubmit="return confirmSubmit('确定删除该访客记录吗？');">
+                                        <input type="hidden" name="id" th:value="${v.id}">
+                                        <button type="submit" class="btn btn-sm btn-danger">删除</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="pager" th:if="${page.total > 0}">
+                    <span class="pager-info">
+                        共 <b th:text="${page.total}">0</b> 条记录，第 <b th:text="${page.pageNum}">1</b>/<b th:text="${page.pages}">1</b> 页
+                    </span>
+                    <div class="pager-btns">
+                        <a class="pg" th:if="${page.hasPrev}"
+                           th:href="@{/visitor/list(pageNum=${page.pageNum - 1}, keyword=${keyword}, status=${status})}">上一页</a>
+                        <a class="pg" th:each="n : ${page.pageNumbers}" th:text="${n}"
+                           th:classappend="${n == page.pageNum} ? 'active'"
+                           th:href="@{/visitor/list(pageNum=${n}, keyword=${keyword}, status=${status})}">1</a>
+                        <a class="pg" th:if="${page.hasNext}"
+                           th:href="@{/visitor/list(pageNum=${page.pageNum + 1}, keyword=${keyword}, status=${status})}">下一页</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card form-panel" id="editPanel">
+                <div class="card-head">
+                    <div>
+                        <h3 class="panel-title">新增访客登记</h3>
+                        <div class="sub">到访时间格式：2026-03-19 10:00</div>
+                    </div>
+                </div>
+                <form id="dataForm" th:action="@{/visitor/save}" method="post">
+                    <input type="hidden" name="id">
+                    <div class="form-grid">
+                        <div class="form-row">
+                            <label class="required" for="visitorName">访客姓名</label>
+                            <input type="text" id="visitorName" name="visitorName" required>
+                        </div>
+                        <div class="form-row">
+                            <label for="phone">联系电话</label>
+                            <input type="text" id="phone" name="phone" placeholder="选填">
+                        </div>
+                        <div class="form-row">
+                            <label class="required" for="roomId">访问房屋</label>
+                            <select id="roomId" name="roomId" required>
+                                <option value="">请选择房屋</option>
+                                <option th:each="r : ${rooms}" th:value="${r.id}" th:text="${r.label}"></option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label class="required" for="visitTime">到访时间</label>
+                            <input type="text" id="visitTime" name="visitTime" required
+                                   placeholder="2026-03-19 10:00">
+                        </div>
+                        <div class="form-row">
+                            <label for="purpose">来访事由</label>
+                            <input type="text" id="purpose" name="purpose" placeholder="如 亲友拜访 / 上门维修">
+                        </div>
+                        <div class="form-row">
+                            <label for="status">状态</label>
+                            <select id="status" name="status">
+                                <option value="待到访">待到访</option>
+                                <option value="已到访">已到访</option>
+                                <option value="已离开">已离开</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label for="remark">备注</label>
+                            <input type="text" id="remark" name="remark" placeholder="选填">
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">保存</button>
+                        <button type="button" class="btn" onclick="closePanel('editPanel')">取消</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <footer th:replace="~{common/layout :: footer}"></footer>
+    </main>
+</div>
+<script th:src="@{/static/js/app.js}"></script>
+</body>
+</html>

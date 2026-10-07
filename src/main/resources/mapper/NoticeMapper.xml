@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.smartproperty.mapper.NoticeMapper">
+
+    <sql id="selectBody">
+        SELECT n.id, n.title, n.content, n.type, n.publisher_id, n.status,
+               n.view_count, n.publish_time,
+               u.real_name AS publisherName
+        FROM t_notice n
+        LEFT JOIN t_user u ON u.id = n.publisher_id
+    </sql>
+
+    <sql id="condition">
+        <if test="keyword != null and keyword != ''">
+            AND (n.title LIKE CONCAT('%', #{keyword}, '%')
+                 OR n.content LIKE CONCAT('%', #{keyword}, '%'))
+        </if>
+        <if test="type != null and type != ''">
+            AND n.type = #{type}
+        </if>
+        <if test="publishedOnly">
+            AND n.status = 1
+        </if>
+    </sql>
+
+    <select id="findPage" resultType="Notice">
+        <include refid="selectBody"/>
+        <where>
+            <include refid="condition"/>
+        </where>
+        ORDER BY n.status DESC, n.publish_time DESC
+        LIMIT #{offset}, #{pageSize}
+    </select>
+
+    <select id="countByCondition" resultType="long">
+        SELECT COUNT(*) FROM t_notice n
+        <where>
+            <include refid="condition"/>
+        </where>
+    </select>
+
+    <select id="findById" resultType="Notice">
+        <include refid="selectBody"/>
+        WHERE n.id = #{id}
+    </select>
+
+    <select id="findLatest" resultType="Notice">
+        <include refid="selectBody"/>
+        WHERE n.status = 1
+        ORDER BY n.publish_time DESC
+        LIMIT #{limit}
+    </select>
+
+    <insert id="insert" parameterType="Notice" useGeneratedKeys="true" keyProperty="id">
+        INSERT INTO t_notice (title, content, type, publisher_id, status, view_count, publish_time)
+        VALUES (#{title}, #{content}, #{type}, #{publisherId}, #{status}, 0, NOW())
+    </insert>
+
+    <update id="update" parameterType="Notice">
+        UPDATE t_notice
+        SET title   = #{title},
+            content = #{content},
+            type    = #{type}
+        WHERE id = #{id}
+    </update>
+
+    <update id="updateStatus">
+        UPDATE t_notice SET status = #{status} WHERE id = #{id}
+    </update>
+
+    <update id="increaseView">
+        UPDATE t_notice SET view_count = view_count + 1 WHERE id = #{id}
+    </update>
+
+    <delete id="deleteById">
+        DELETE FROM t_notice WHERE id = #{id}
+    </delete>
+
+    <select id="countAll" resultType="long">
+        SELECT COUNT(*) FROM t_notice
+    </select>
+</mapper>

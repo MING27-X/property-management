@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{common/layout :: head('投诉建议详情')}"></head>
+<body>
+<header th:replace="~{common/layout :: topnav('complaint')}"></header>
+<div class="layout">
+    <aside th:replace="~{common/layout :: sidebar('complaint')}"></aside>
+    <main class="main">
+        <header th:replace="~{common/layout :: topbar('投诉建议详情', '诉求内容与物业回复')}"></header>
+
+        <div class="content">
+            <div class="alert alert-success alert-auto" th:if="${msg != null}" th:text="${msg}"></div>
+            <div class="alert alert-error alert-auto" th:if="${error != null}" th:text="${error}"></div>
+
+            <div class="card">
+                <div class="card-head">
+                    <div>
+                        <h3 th:text="'#' + ${complaint.id} + '　' + ${complaint.title}">标题</h3>
+                        <div class="sub">
+                            提交时间：<span th:text="${#dates.format(complaint.createTime,'yyyy-MM-dd HH:mm')}"></span>
+                        </div>
+                    </div>
+                    <div>
+                        <span class="badge" th:classappend="${complaint.type == '投诉'} ? 'badge-orange' : 'badge-blue'"
+                              th:text="${complaint.type}">投诉</span>
+                        <span class="badge" th:classappend="${complaint.status == '待处理'} ? 'badge-orange' : 'badge-green'"
+                              th:text="${complaint.status}">待处理</span>
+                    </div>
+                </div>
+
+                <div class="desc-grid">
+                    <div class="desc-item"><span class="k">提交业主</span><span class="v" th:text="${complaint.ownerName}">张三</span></div>
+                    <div class="desc-item"><span class="k">联系电话</span><span class="v" th:text="${complaint.ownerPhone}">139</span></div>
+                    <div class="desc-item"><span class="k">所在房屋</span>
+                        <span class="v" th:text="${(complaint.buildingName != null ? complaint.buildingName : '') + ' ' + (complaint.roomNo != null ? complaint.roomNo : '')}">1号楼 1-101</span>
+                    </div>
+                    <div class="desc-item"><span class="k">回复人</span>
+                        <span class="v" th:text="${complaint.replyByName != null ? complaint.replyByName : '—'}">—</span>
+                    </div>
+                    <div class="desc-item"><span class="k">回复时间</span>
+                        <span class="v" th:text="${complaint.replyTime != null ? #dates.format(complaint.replyTime,'yyyy-MM-dd HH:mm') : '—'}">—</span>
+                    </div>
+                </div>
+
+                <div class="form-row" style="margin-top:16px">
+                    <label>诉求内容</label>
+                    <div class="card" style="margin:0;box-shadow:none;background:#fafbfc;white-space:pre-wrap"
+                         th:text="${complaint.content}">内容</div>
+                </div>
+
+                <div class="form-row" th:if="${complaint.replyContent != null}">
+                    <label>物业回复</label>
+                    <div class="card" style="margin:0;box-shadow:none;background:#f4fdf8;white-space:pre-wrap"
+                         th:text="${complaint.replyContent}">回复</div>
+                </div>
+            </div>
+
+            <div class="card" th:if="${loginUser.role != 'OWNER'}">
+                <div class="card-head">
+                    <div>
+                        <h3>物业回复</h3>
+                        <div class="sub">回复后业主可在「我的投诉建议」中查看结果</div>
+                    </div>
+                </div>
+                <form th:action="@{/complaint/reply}" method="post">
+                    <input type="hidden" name="id" th:value="${complaint.id}">
+                    <div class="form-row">
+                        <label class="required" for="replyContent">回复内容</label>
+                        <textarea id="replyContent" name="replyContent" required
+                                  th:text="${complaint.replyContent}"
+                                  placeholder="如：已与商铺负责人沟通，要求22点后关闭外放音响"></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">提交回复</button>
+                    </div>
+                </form>
+            </div>
+
+            <div class="card">
+                <a class="btn" th:href="@{/complaint/list}">← 返回列表</a>
+            </div>
+        </div>
+
+        <footer th:replace="~{common/layout :: footer}"></footer>
+    </main>
+</div>
+<script th:src="@{/static/js/app.js}"></script>
+</body>
+</html>

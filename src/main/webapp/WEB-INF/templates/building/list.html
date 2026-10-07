@@ -1,0 +1,127 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{common/layout :: head('楼栋管理')}"></head>
+<body>
+<div class="layout">
+    <aside th:replace="~{common/layout :: sidebar('building')}"></aside>
+    <main class="main">
+        <header th:replace="~{common/layout :: topbar('楼栋管理', '维护小区楼栋的基础档案信息')}"></header>
+
+        <div class="content">
+            <div class="alert alert-success alert-auto" th:if="${msg != null}" th:text="${msg}"></div>
+            <div class="alert alert-error alert-auto" th:if="${error != null}" th:text="${error}"></div>
+
+            <div class="card">
+                <div class="toolbar">
+                    <form th:action="@{/building/list}" method="get">
+                        <input type="text" name="keyword" th:value="${keyword}" placeholder="楼栋编号 / 名称">
+                        <button type="submit" class="btn btn-primary btn-sm">查询</button>
+                        <a class="btn btn-sm" th:href="@{/building/list}">重置</a>
+                    </form>
+                    <button type="button" class="btn btn-primary"
+                            onclick="openCreate('dataForm', 'editPanel', '新增楼栋')">+ 新增楼栋</button>
+                </div>
+
+                <div class="table-wrap">
+                    <table class="data-table">
+                        <thead>
+                        <tr>
+                            <th>楼栋编号</th>
+                            <th>楼栋名称</th>
+                            <th>单元数</th>
+                            <th>层数</th>
+                            <th>房屋数量</th>
+                            <th>备注</th>
+                            <th>操作</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:if="${page.list.isEmpty()}">
+                            <td colspan="7" class="empty-row">暂无楼栋数据</td>
+                        </tr>
+                        <tr th:each="b : ${page.list}">
+                            <td><span class="badge badge-blue" th:text="${b.buildingNo}">A1</span></td>
+                            <td th:text="${b.name}">1号楼</td>
+                            <td th:text="${b.unitCount}">2</td>
+                            <td th:text="${b.floorCount}">18</td>
+                            <td><span th:text="${b.roomCount}" class="badge">0</span></td>
+                            <td class="wrap" th:text="${b.remark}">备注</td>
+                            <td>
+                                <div class="btn-row">
+                                    <button type="button" class="btn btn-sm"
+                                            th:attr="data-id=${b.id},data-buildingno=${b.buildingNo},data-name=${b.name},data-unitcount=${b.unitCount},data-floorcount=${b.floorCount},data-remark=${b.remark}"
+                                            onclick="openEdit(this, 'dataForm', 'editPanel', '编辑楼栋')">编辑</button>
+                                    <form th:if="${loginUser.role == 'ADMIN'}" th:action="@{/building/delete}" method="post"
+                                          onsubmit="return confirmSubmit('确定删除该楼栋吗？');">
+                                        <input type="hidden" name="id" th:value="${b.id}">
+                                        <button type="submit" class="btn btn-sm btn-danger">删除</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="pager" th:if="${page.total > 0}">
+                    <span class="pager-info">
+                        共 <b th:text="${page.total}">0</b> 条记录，第 <b th:text="${page.pageNum}">1</b>/<b th:text="${page.pages}">1</b> 页
+                    </span>
+                    <div class="pager-btns">
+                        <a class="pg" th:if="${page.hasPrev}"
+                           th:href="@{/building/list(pageNum=${page.pageNum - 1}, keyword=${keyword})}">上一页</a>
+                        <a class="pg" th:each="n : ${page.pageNumbers}" th:text="${n}"
+                           th:classappend="${n == page.pageNum} ? 'active'"
+                           th:href="@{/building/list(pageNum=${n}, keyword=${keyword})}">1</a>
+                        <a class="pg" th:if="${page.hasNext}"
+                           th:href="@{/building/list(pageNum=${page.pageNum + 1}, keyword=${keyword})}">下一页</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 新增 / 编辑表单 -->
+            <div class="card form-panel" id="editPanel">
+                <div class="card-head">
+                    <div>
+                        <h3 class="panel-title">新增楼栋</h3>
+                        <div class="sub">楼栋编号用于生成房号，建议使用 A1、B2 这类简短编号</div>
+                    </div>
+                </div>
+                <form id="dataForm" th:action="@{/building/save}" method="post">
+                    <input type="hidden" name="id">
+                    <div class="form-grid">
+                        <div class="form-row">
+                            <label class="required" for="buildingNo">楼栋编号</label>
+                            <input type="text" id="buildingNo" name="buildingNo" required placeholder="如 A1">
+                        </div>
+                        <div class="form-row">
+                            <label class="required" for="name">楼栋名称</label>
+                            <input type="text" id="name" name="name" required placeholder="如 1号楼">
+                        </div>
+                        <div class="form-row">
+                            <label for="unitCount">单元数</label>
+                            <input type="number" id="unitCount" name="unitCount" min="1" value="1">
+                        </div>
+                        <div class="form-row">
+                            <label for="floorCount">层数</label>
+                            <input type="number" id="floorCount" name="floorCount" min="1" value="1">
+                        </div>
+                        <div class="form-row">
+                            <label for="remark">备注</label>
+                            <input type="text" id="remark" name="remark" placeholder="选填">
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">保存</button>
+                        <button type="button" class="btn" onclick="closePanel('editPanel')">取消</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <footer th:replace="~{common/layout :: footer}"></footer>
+    </main>
+</div>
+<script th:src="@{/static/js/app.js}"></script>
+</body>
+</html>

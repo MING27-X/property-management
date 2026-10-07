@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE configuration
+        PUBLIC "-//mybatis.org//DTD Config 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-config.dtd">
+<configuration>
+    <settings>
+        <!-- 数据库下划线字段自动映射为 Java 驼峰属性 -->
+        <setting name="mapUnderscoreToCamelCase" value="true"/>
+        <!-- 允许字段为空时正常写入 NULL -->
+        <setting name="jdbcTypeForNull" value="NULL"/>
+        <!-- 开启延迟加载 -->
+        <setting name="lazyLoadingEnabled" value="false"/>
+    </settings>
+</configuration>

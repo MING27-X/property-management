@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{common/layout :: head('报修管理')}"></head>
+<body>
+<header th:replace="~{common/layout :: topnav('repair')}"></header>
+<div class="layout">
+    <aside th:replace="~{common/layout :: sidebar('repair')}"></aside>
+    <main class="main">
+        <header th:replace="~{common/layout :: topbar('报修管理', '业主报修提交、物业派单与处理跟踪')}"></header>
+
+        <div class="content">
+            <div class="alert alert-success alert-auto" th:if="${msg != null}" th:text="${msg}"></div>
+            <div class="alert alert-error alert-auto" th:if="${error != null}" th:text="${error}"></div>
+
+            <div class="stat-grid">
+                <div class="stat-card">
+                    <div class="stat-icon orange">⏳</div>
+                    <div>
+                        <div class="stat-value" th:text="${stat['待处理']}">0</div>
+                        <div class="stat-label">待处理工单</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">🔧</div>
+                    <div>
+                        <div class="stat-value" th:text="${stat['处理中']}">0</div>
+                        <div class="stat-label">处理中工单</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon green">✅</div>
+                    <div>
+                        <div class="stat-value" th:text="${stat['已完成']}">0</div>
+                        <div class="stat-label">已完成工单</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon purple">📋</div>
+                    <div>
+                        <div class="stat-value" th:text="${page.total}">0</div>
+                        <div class="stat-label">当前筛选工单数</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tabs">
+                <a th:href="@{/repair/list(category=${category})}"
+                   th:classappend="${status == null or status == ''} ? 'active'">全部</a>
+                <a th:href="@{/repair/list(status='待处理', category=${category})}"
+                   th:classappend="${status == '待处理'} ? 'active'">待处理<span
+                        class="tab-count" th:if="${loginUser.role != 'OWNER'}"
+                        th:text="'(' + ${stat['待处理']} + ')'"></span></a>
+                <a th:href="@{/repair/list(status='处理中', category=${category})}"
+                   th:classappend="${status == '处理中'} ? 'active'">处理中<span
+                        class="tab-count" th:if="${loginUser.role != 'OWNER'}"
+                        th:text="'(' + ${stat['处理中']} + ')'"></span></a>
+                <a th:href="@{/repair/list(status='已完成', category=${category})}"
+                   th:classappend="${status == '已完成'} ? 'active'">已完成<span
+                        class="tab-count" th:if="${loginUser.role != 'OWNER'}"
+                        th:text="'(' + ${stat['已完成']} + ')'"></span></a>
+            </div>
+
+            <div class="card">
+                <div class="toolbar">
+                    <form th:action="@{/repair/list}" method="get">
+                        <input type="text" th:if="${loginUser.role != 'OWNER'}" name="keyword"
+                               th:value="${keyword}" placeholder="标题 / 业主 / 房号">
+                        <select name="category">
+                            <option value="">全部类别</option>
+                            <option th:each="c : ${ {'水电','门窗','电梯','公共设施','家电','其他'} }"
+                                    th:value="${c}" th:text="${c}" th:selected="${category == c}"></option>
+                        </select>
+                        <button type="submit" class="btn btn-primary btn-sm">查询</button>
+                        <a class="btn btn-sm" th:href="@{/repair/list}">重置</a>
+                    </form>
+                    <button type="button" class="btn btn-primary"
+                            onclick="openCreate('dataForm', 'editPanel', '报修登记')">
+                        + <span th:text="${loginUser.role == 'OWNER' ? '我要报修' : '新增报修工单'}">我要报修</span>
+                    </button>
+                </div>
+
+                <!-- 业主端：卡片式列表 -->
+                <div class="item-list" th:if="${loginUser.role == 'OWNER'}">
+                    <div class="item-card" th:each="rp : ${page.list}">
+                        <div class="item-head">
+                            <div class="item-title">
+                                <span class="badge badge-blue" th:text="${rp.category}">类别</span>
+                                <span th:text="${rp.title}">报修标题</span>
+                                <span class="badge badge-red" th:if="${rp.urgency == '紧急'}">紧急</span>
+                            </div>
+                            <span class="badge"
+                                  th:classappend="${rp.status == '待处理'} ? 'badge-orange' : (${rp.status == '处理中'} ? 'badge-blue' : 'badge-green')"
+                                  th:text="${rp.status}">待处理</span>
+                        </div>
+                        <div class="item-body" th:text="${rp.content}">故障描述</div>
+                        <div class="item-foot">
+                            <span class="item-meta">
+                                <span th:text="'报修时间：' + ${#dates.format(rp.createTime,'yyyy-MM-dd HH:mm')}"></span>
+                                <span th:if="${rp.handlerName != null}" th:text="'处理人：' + ${rp.handlerName}"></span>
+                                <span th:if="${rp.handleTime != null}"
+                                      th:text="'完成时间：' + ${#dates.format(rp.handleTime,'yyyy-MM-dd HH:mm')}"></span>
+                            </span>
+                            <a class="btn btn-sm btn-primary" th:href="@{/repair/detail(id=${rp.id})}">查看详情</a>
+                        </div>
+                    </div>
+                    <p class="muted" th:if="${page.list.isEmpty()}" style="text-align:center;padding:34px 0">
+                        还没有报修记录，点击右上角「我要报修」提交，物业会尽快安排处理。
+                    </p>
+                </div>
+
+                <div class="table-wrap" th:if="${loginUser.role != 'OWNER'}">
+                    <table class="data-table">
+                        <thead>
+                        <tr>
+                            <th>工单号</th>
+                            <th>报修房屋</th>
+                            <th th:if="${loginUser.role != 'OWNER'}">报修业主</th>
+                            <th>报修类别</th>
+                            <th>报修标题</th>
+                            <th>紧急程度</th>
+                            <th>状态</th>
+                            <th>报修时间</th>
+                            <th>处理人</th>
+                            <th>操作</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:if="${page.list.isEmpty()}">
+                            <td colspan="10" class="empty-row">暂无报修工单</td>
+                        </tr>
+                        <tr th:each="rp : ${page.list}">
+                            <td th:text="'#' + ${rp.id}">#1</td>
+                            <td th:text="${(rp.buildingName != null ? rp.buildingName : '') + ' ' + (rp.roomNo != null ? rp.roomNo : '')}">1号楼 1-101</td>
+                            <td th:if="${loginUser.role != 'OWNER'}" th:text="${rp.ownerName}">张三</td>
+                            <td><span class="badge" th:text="${rp.category}">水电</span></td>
+                            <td class="wrap"><a th:href="@{/repair/detail(id=${rp.id})}" th:text="${rp.title}">厨房水管漏水</a></td>
+                            <td>
+                                <span class="badge"
+                                      th:classappend="${rp.urgency == '紧急'} ? 'badge-red' : 'badge-gray'"
+                                      th:text="${rp.urgency}">普通</span>
+                            </td>
+                            <td>
+                                <span class="badge"
+                                      th:classappend="${rp.status == '待处理'} ? 'badge-orange' : (${rp.status == '处理中'} ? 'badge-blue' : 'badge-green')"
+                                      th:text="${rp.status}">待处理</span>
+                            </td>
+                            <td th:text="${#dates.format(rp.createTime, 'yyyy-MM-dd HH:mm')}">2026-03-02 08:20</td>
+                            <td th:text="${rp.handlerName != null ? rp.handlerName : '未派单'}">未派单</td>
+                            <td>
+                                <div class="btn-row">
+                                    <a class="btn btn-sm" th:href="@{/repair/detail(id=${rp.id})}">详情</a>
+                                    <form th:if="${loginUser.role == 'ADMIN'}" th:action="@{/repair/delete}" method="post"
+                                          onsubmit="return confirmSubmit('确定删除该工单吗？');">
+                                        <input type="hidden" name="id" th:value="${rp.id}">
+                                        <button type="submit" class="btn btn-sm btn-danger">删除</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="pager" th:if="${page.total > 0}">
+                    <span class="pager-info">
+                        共 <b th:text="${page.total}">0</b> 条记录，第 <b th:text="${page.pageNum}">1</b>/<b th:text="${page.pages}">1</b> 页
+                    </span>
+                    <div class="pager-btns">
+                        <a class="pg" th:if="${page.hasPrev}"
+                           th:href="@{/repair/list(pageNum=${page.pageNum - 1}, keyword=${keyword}, status=${status}, category=${category})}">上一页</a>
+                        <a class="pg" th:each="n : ${page.pageNumbers}" th:text="${n}"
+                           th:classappend="${n == page.pageNum} ? 'active'"
+                           th:href="@{/repair/list(pageNum=${n}, keyword=${keyword}, status=${status}, category=${category})}">1</a>
+                        <a class="pg" th:if="${page.hasNext}"
+                           th:href="@{/repair/list(pageNum=${page.pageNum + 1}, keyword=${keyword}, status=${status}, category=${category})}">下一页</a>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 报修提交表单 -->
+            <div class="card form-panel" id="editPanel"
+                 th:with="roomOptions=${loginUser.role == 'OWNER' ? myRooms : rooms}">
+                <div class="card-head">
+                    <div>
+                        <h3 class="panel-title" th:text="${loginUser.role == 'OWNER' ? '我要报修' : '代业主报修'}">我要报修</h3>
+                        <div class="sub">提交后物业客服会安排维修人员上门，可在详情页查看处理进度</div>
+                    </div>
+                </div>
+                <form id="dataForm" th:action="@{/repair/save}" method="post">
+                    <div class="form-grid">
+                        <div class="form-row">
+                            <label class="required" for="roomId">报修房屋</label>
+                            <select id="roomId" name="roomId" required>
+                                <option value="">请选择房屋</option>
+                                <option th:each="r : ${roomOptions}" th:value="${r.id}" th:text="${r.label}"></option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label for="category">报修类别</label>
+                            <select id="category" name="category">
+                                <option value="水电">水电</option>
+                                <option value="门窗">门窗</option>
+                                <option value="电梯">电梯</option>
+                                <option value="公共设施">公共设施</option>
+                                <option value="家电">家电</option>
+                                <option value="其他">其他</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label for="urgency">紧急程度</label>
+                            <select id="urgency" name="urgency">
+                                <option value="普通">普通</option>
+                                <option value="紧急">紧急</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label class="required" for="title">报修标题</label>
+                            <input type="text" id="title" name="title" required placeholder="如 厨房水管漏水">
+                        </div>
+                    </div>
+                    <div class="form-row">
+                        <label class="required" for="content">故障描述</label>
+                        <textarea id="content" name="content" required
+                                  placeholder="请描述故障现象、发生位置等信息，便于维修人员提前准备"></textarea>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">提交报修</button>
+                        <button type="button" class="btn" onclick="closePanel('editPanel')">取消</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <footer th:replace="~{common/layout :: footer}"></footer>
+    </main>
+</div>
+<script th:src="@{/static/js/app.js}"></script>
+</body>
+</html>

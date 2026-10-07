@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="zh-CN" xmlns:th="http://www.thymeleaf.org">
+<head th:replace="~{common/layout :: head('用户管理')}"></head>
+<body>
+<div class="layout">
+    <aside th:replace="~{common/layout :: sidebar('user')}"></aside>
+    <main class="main">
+        <header th:replace="~{common/layout :: topbar('用户管理', '系统账号、角色权限与密码管理')}"></header>
+
+        <div class="content">
+            <div class="alert alert-success alert-auto" th:if="${msg != null}" th:text="${msg}"></div>
+            <div class="alert alert-error alert-auto" th:if="${error != null}" th:text="${error}"></div>
+
+            <div class="stat-grid">
+                <div class="stat-card">
+                    <div class="stat-icon purple">🛡️</div>
+                    <div>
+                        <div class="stat-value" th:text="${adminCount}">0</div>
+                        <div class="stat-label">系统管理员</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon">👷</div>
+                    <div>
+                        <div class="stat-value" th:text="${staffCount}">0</div>
+                        <div class="stat-label">物业员工</div>
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-icon green">🧑</div>
+                    <div>
+                        <div class="stat-value" th:text="${ownerCount}">0</div>
+                        <div class="stat-label">业主账号</div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card">
+                <div class="toolbar">
+                    <form th:action="@{/user/list}" method="get">
+                        <input type="text" name="keyword" th:value="${keyword}" placeholder="账号 / 姓名 / 手机号">
+                        <select name="role">
+                            <option value="">全部角色</option>
+                            <option value="ADMIN" th:selected="${role == 'ADMIN'}">系统管理员</option>
+                            <option value="STAFF" th:selected="${role == 'STAFF'}">物业员工</option>
+                            <option value="OWNER" th:selected="${role == 'OWNER'}">业主</option>
+                        </select>
+                        <button type="submit" class="btn btn-primary btn-sm">查询</button>
+                        <a class="btn btn-sm" th:href="@{/user/list}">重置</a>
+                    </form>
+                    <button type="button" class="btn btn-primary"
+                            onclick="openCreate('dataForm', 'editPanel', '新增系统账号')">+ 新增账号</button>
+                </div>
+
+                <div class="table-wrap">
+                    <table class="data-table">
+                        <thead>
+                        <tr>
+                            <th>登录账号</th>
+                            <th>姓名</th>
+                            <th>手机号</th>
+                            <th>角色</th>
+                            <th>状态</th>
+                            <th>创建时间</th>
+                            <th>操作</th>
+                        </tr>
+                        </thead>
+                        <tbody>
+                        <tr th:if="${page.list.isEmpty()}">
+                            <td colspan="7" class="empty-row">暂无账号数据</td>
+                        </tr>
+                        <tr th:each="u : ${page.list}">
+                            <td><strong th:text="${u.username}">admin</strong></td>
+                            <td th:text="${u.realName}">系统管理员</td>
+                            <td th:text="${u.phone != null ? u.phone : '—'}">138</td>
+                            <td>
+                                <span class="badge"
+                                      th:classappend="${u.role == 'ADMIN'} ? 'badge-purple' : (${u.role == 'STAFF'} ? 'badge-blue' : 'badge-gray')"
+                                      th:text="${u.roleName}">系统管理员</span>
+                            </td>
+                            <td>
+                                <span class="badge" th:classappend="${u.status == 1} ? 'badge-green' : 'badge-red'"
+                                      th:text="${u.status == 1 ? '启用' : '禁用'}">启用</span>
+                            </td>
+                            <td th:text="${#dates.format(u.createTime,'yyyy-MM-dd HH:mm')}">2026-01-01 09:00</td>
+                            <td>
+                                <div class="btn-row">
+                                    <button type="button" class="btn btn-sm"
+                                            th:attr="data-id=${u.id},data-username=${u.username},data-realname=${u.realName},data-phone=${u.phone},data-role=${u.role},data-status=${u.status}"
+                                            onclick="openEdit(this, 'dataForm', 'editPanel', '编辑账号信息')">编辑</button>
+                                    <form th:action="@{/user/reset}" method="post"
+                                          onsubmit="return confirmSubmit('确定将密码重置为 123456 吗？');">
+                                        <input type="hidden" name="id" th:value="${u.id}">
+                                        <button type="submit" class="btn btn-sm">重置密码</button>
+                                    </form>
+                                    <form th:action="@{/user/toggle}" method="post">
+                                        <input type="hidden" name="id" th:value="${u.id}">
+                                        <button type="submit" class="btn btn-sm"
+                                                th:text="${u.status == 1 ? '禁用' : '启用'}">禁用</button>
+                                    </form>
+                                    <form th:action="@{/user/delete}" method="post"
+                                          onsubmit="return confirmSubmit('确定删除该账号吗？');">
+                                        <input type="hidden" name="id" th:value="${u.id}">
+                                        <button type="submit" class="btn btn-sm btn-danger">删除</button>
+                                    </form>
+                                </div>
+                            </td>
+                        </tr>
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="pager" th:if="${page.total > 0}">
+                    <span class="pager-info">
+                        共 <b th:text="${page.total}">0</b> 个账号，第 <b th:text="${page.pageNum}">1</b>/<b th:text="${page.pages}">1</b> 页
+                    </span>
+                    <div class="pager-btns">
+                        <a class="pg" th:if="${page.hasPrev}"
+                           th:href="@{/user/list(pageNum=${page.pageNum - 1}, keyword=${keyword}, role=${role})}">上一页</a>
+                        <a class="pg" th:each="n : ${page.pageNumbers}" th:text="${n}"
+                           th:classappend="${n == page.pageNum} ? 'active'"
+                           th:href="@{/user/list(pageNum=${n}, keyword=${keyword}, role=${role})}">1</a>
+                        <a class="pg" th:if="${page.hasNext}"
+                           th:href="@{/user/list(pageNum=${page.pageNum + 1}, keyword=${keyword}, role=${role})}">下一页</a>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card form-panel" id="editPanel">
+                <div class="card-head">
+                    <div>
+                        <h3 class="panel-title">新增系统账号</h3>
+                        <div class="sub">新增账号的初始密码为 123456，账号创建后不可修改</div>
+                    </div>
+                </div>
+                <form id="dataForm" th:action="@{/user/save}" method="post">
+                    <input type="hidden" name="id">
+                    <div class="form-grid">
+                        <div class="form-row">
+                            <label class="required" for="username">登录账号</label>
+                            <input type="text" id="username" name="username" required placeholder="字母或数字组合">
+                        </div>
+                        <div class="form-row">
+                            <label class="required" for="realName">姓名</label>
+                            <input type="text" id="realName" name="realName" required>
+                        </div>
+                        <div class="form-row">
+                            <label for="phone">手机号</label>
+                            <input type="tel" id="phone" name="phone">
+                        </div>
+                        <div class="form-row">
+                            <label class="required" for="role">角色</label>
+                            <select id="role" name="role" required>
+                                <option value="STAFF">物业员工</option>
+                                <option value="OWNER">业主</option>
+                                <option value="ADMIN">系统管理员</option>
+                            </select>
+                        </div>
+                        <div class="form-row">
+                            <label for="status">账号状态</label>
+                            <select id="status" name="status">
+                                <option value="1">启用</option>
+                                <option value="0">禁用</option>
+                            </select>
+                        </div>
+                    </div>
+                    <div class="form-actions">
+                        <button type="submit" class="btn btn-primary">保存</button>
+                        <button type="button" class="btn" onclick="closePanel('editPanel')">取消</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <footer th:replace="~{common/layout :: footer}"></footer>
+    </main>
+</div>
+<script th:src="@{/static/js/app.js}"></script>
+</body>
+</html>
